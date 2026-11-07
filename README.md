@@ -9,14 +9,16 @@ npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:4000`, paste your OpenRouter API key, and pick models for the Opus / Sonnet / Haiku roles. The Web UI writes the config file for you; no manual JSON editing needed.
+`npm run dev` starts two processes: Vite on `http://localhost:5173` (the UI, proxying `/api` and `/v1` to the server) and Fastify on `127.0.0.1:4000`. Open the Vite URL, paste your OpenRouter API key, and pick models for the Opus / Sonnet / Haiku roles. The Web UI writes the config file for you; no manual JSON editing needed.
 
-Production build:
+Production — build once, then run:
 
 ```bash
 npm run build
 npm start
 ```
+
+`npm start` runs a single process: Fastify also serves the built UI, so the app is at `http://127.0.0.1:4000` and no Vite / port 5173 is involved. Re-run `npm run build` after changing UI code.
 
 ## Pointing Claude Code at the proxy
 

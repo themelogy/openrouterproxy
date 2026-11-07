@@ -3,6 +3,7 @@
   "description": "A proxy for the Claude Code API that uses the OpenRouter API",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -10,6 +11,7 @@
   "scripts": {
     "dev": "concurrently --kill-others -n \"web,server\" -c \"cyan,magenta\" \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/server\"",
     "build": "npm run build --workspaces",
+    "start": "node dist/index.js",
     "test": "npm run test --workspaces --if-present"
   },
   "engines": {

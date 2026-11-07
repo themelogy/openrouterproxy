@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import Fastify from 'fastify';
@@ -10,7 +10,9 @@ import { registerGuard } from './routes/auth.guard.js';
 import { attachCorrelationId, redactSensitive } from './logging/logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const WEB_DIST = join(__dirname, '../../web/dist');
+// dev'de apps/server/src, üretimde kök dist — iki düzeni de dene
+const WEB_DIST = [join(__dirname, '../../web/dist'), join(__dirname, '../apps/web/dist')]
+  .find(p => existsSync(join(p, 'index.html'))) ?? join(__dirname, '../apps/web/dist');
 
 export async function createApp() {
   const app = Fastify({
