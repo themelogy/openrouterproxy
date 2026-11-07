@@ -5,9 +5,10 @@ dist/
 .serena
 .superpowers
 .claude
+/graphify-out
 /docs
 data/
 logs/
 .DS_Store
-project.md
+*.md
 *.log

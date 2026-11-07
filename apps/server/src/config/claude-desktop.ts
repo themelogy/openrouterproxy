@@ -4,8 +4,11 @@ import { dirname, join } from 'path';
 import { homedir } from 'os';
 import { CONFIG_PATH } from './schema.js';
 
+// Desktop 3P klasörü macOS'ta Application Support, Windows'ta %APPDATA% altında
 export const DESKTOP_DIR = process.env.CLAUDE_DESKTOP_DIR
-  || join(homedir(), 'Library', 'Application Support');
+  || (process.platform === 'win32'
+    ? process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
+    : join(homedir(), 'Library', 'Application Support'));
 
 export const PROFILE_ID = '00000000-0000-4000-8000-0000000000c1';
 const PROFILE_NAME = 'openrouter-proxy';
