@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "concurrently --kill-others -n \"web,server\" -c \"cyan,magenta\" \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/server\"",
     "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces"
+    "test": "npm run test --workspaces --if-present"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -4,6 +4,6 @@
   "private": true,
   "main": "src/types.ts",
   "scripts": {
-    "build": "true"
+    "build": "node -e \"\""
   }
 }
