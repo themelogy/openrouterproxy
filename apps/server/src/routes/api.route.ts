@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AppConfig } from '@shared/types';
 import { loadConfig, saveConfig, maskApiKey } from '../config/store.js';
 import { syncModelOverrides } from '../config/claude-settings.js';
+import { getDesktopStatus, enableDesktop, disableDesktop } from '../config/claude-desktop.js';
 import { fetchModels, fetchEndpoints } from '../proxy/openrouter-client.js';
 
 const requestLog: Array<{ time: string; model: string; status: number; duration?: string; ctxTokens?: number }> = [];
@@ -86,6 +87,22 @@ export async function register(app: FastifyInstance) {
       return await fetchEndpoints(modelId, config.openrouter.apiKey);
     } catch (e) {
       return reply.code(502).send({ error: `Failed to fetch endpoints: ${(e as Error).message}` });
+    }
+  });
+
+  // GET /api/claude-desktop — Desktop 3P entegrasyon durumu
+  app.get('/api/claude-desktop', async () => getDesktopStatus());
+
+  // POST /api/claude-desktop — { enabled: boolean }; kapatınca önceki ayarlar geri yazılır
+  app.post('/api/claude-desktop', async (req, reply) => {
+    const { enabled } = (req.body ?? {}) as { enabled?: boolean };
+    try {
+      if (!enabled) return disableDesktop();
+      const cfg = loadConfig();
+      const host = cfg.server.host === '0.0.0.0' ? '127.0.0.1' : cfg.server.host;
+      return enableDesktop(`http://${host}:${cfg.server.port}`);
+    } catch (e) {
+      return reply.code(400).send({ ok: false, error: (e as Error).message });
     }
   });
 

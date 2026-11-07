@@ -20,6 +20,12 @@ describe('model resolver', () => {
     expect(result).toEqual({ resolved: 'openrouter/claude-3-haiku' });
   });
 
+  it('resolves Claude Desktop gateway slot IDs', () => {
+    expect(resolveModelStrict('claude-opus', config)).toEqual({ resolved: 'openrouter/claude-3-opus' });
+    expect(resolveModelStrict('claude-sonnet', config)).toEqual({ resolved: 'openrouter/claude-3-sonnet' });
+    expect(resolveModelStrict('claude-haiku', config)).toEqual({ resolved: 'openrouter/claude-3-haiku' });
+  });
+
   it('passes through direct model ID', () => {
     const result = resolveModelStrict('openrouter/deepseek-r1', config);
     expect(result).toEqual({ resolved: 'openrouter/deepseek-r1' });

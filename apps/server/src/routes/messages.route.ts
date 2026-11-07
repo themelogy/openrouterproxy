@@ -6,7 +6,38 @@ import { fetchMessage } from '../proxy/openrouter-client.js';
 import { logRequest } from './api.route.js';
 import { estimateContextTokens } from './token-count.route.js';
 
+// Claude Desktop (gateway modu) bu ID'lerde claude|opus|sonnet|haiku geçmesini şart koşar.
+const DESKTOP_SLOTS = [
+  { id: 'claude-opus', role: 'opus', tier: 'opus' },
+  { id: 'claude-sonnet', role: 'sonnet', tier: 'sonnet' },
+  { id: 'claude-haiku', role: 'haiku', tier: 'haiku' },
+] as const;
+
+function slotEntry(id: string, tier: string, model: unknown) {
+  const entry = typeof model === 'string' ? { id: model } : (model as { id: string });
+  return {
+    id,
+    object: 'model',
+    type: 'model',
+    display_name: entry?.id || id,
+    created_at: '2025-01-01T00:00:00Z',
+    anthropic_family_tier: tier,
+    is_family_default: true,
+    max_tokens: 8192,
+  };
+}
+
 export async function register(app: FastifyInstance) {
+  // GET /v1/models — Claude Desktop gateway model discovery
+  app.get('/v1/models', async () => {
+    const { models } = loadConfig();
+    return {
+      data: DESKTOP_SLOTS.map(s => slotEntry(s.id, s.tier, models[s.role])),
+      has_more: false,
+      last_id: null,
+    };
+  });
+
   app.post('/v1/messages', async (req, reply) => {
     const started = Date.now();
 

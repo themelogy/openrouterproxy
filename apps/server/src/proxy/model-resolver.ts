@@ -8,6 +8,10 @@ const ALIAS_MAP: Record<string, keyof ModelConfig> = {
   'opus': 'opus',
   'sonnet': 'sonnet',
   'haiku': 'haiku',
+  // Claude Desktop gateway modu bu slot ID'lerini gönderir (GET /v1/models)
+  'claude-opus': 'opus',
+  'claude-sonnet': 'sonnet',
+  'claude-haiku': 'haiku',
 };
 
 export interface ResolvedModel {
