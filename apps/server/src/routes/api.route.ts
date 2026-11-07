@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { AppConfig } from '@shared/types';
 import { loadConfig, saveConfig, maskApiKey } from '../config/store.js';
+import { syncModelOverrides } from '../config/claude-settings.js';
 import { fetchModels } from '../proxy/openrouter-client.js';
 
 const requestLog: Array<{ time: string; model: string; status: number; duration?: string }> = [];
@@ -34,6 +35,11 @@ export async function register(app: FastifyInstance) {
       saveConfig(partial);
     } catch (e) {
       return reply.code(400).send({ ok: false, error: (e as Error).message });
+    }
+    // Config yazıldı; settings sync başarısız olsa da settings.json'a dokunmadan geç.
+    if (partial.models) {
+      try { syncModelOverrides(loadConfig().models); }
+      catch (e) { console.warn('[api] modelOverrides güncellenemedi:', (e as Error).message); }
     }
     return { ok: true };
   });
