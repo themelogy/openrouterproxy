@@ -99,13 +99,17 @@ export default function LaunchCommand() {
           Route Claude Desktop through this proxy
         </label>
         {desktop && !desktop.installed && (
-          <div className={styles.hint}>
-            Claude Desktop 3P config not found. Looked in <code>{desktop.libraryDir}</code>.
+          <>
+            <div className={styles.hint}>
+              Claude Desktop 3P config not found. Looked in <code>{desktop.libraryDir}</code>.
+            </div>
             <button className={styles.button} disabled={busy} onClick={() => postDesktop({ create: true })}>
               Create 3P config folder
             </button>
-            Set <code>CLAUDE_DESKTOP_DIR</code> to the folder containing <code>Claude-3p</code>, then restart the proxy.
-          </div>
+            <div className={styles.hint}>
+              Set <code>CLAUDE_DESKTOP_DIR</code> to the folder containing <code>Claude-3p</code>, then restart the proxy.
+            </div>
+          </>
         )}
         {desktop?.installed && (
           <div className={styles.hint}>

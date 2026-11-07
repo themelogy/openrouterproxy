@@ -117,7 +117,7 @@ Set `CLAUDE_DESKTOP_DIR` if your copy keeps it elsewhere.
 
 Caveats:
 
-- The `Claude-3p` folder must already exist — it only ships with Desktop builds that support third-party deployments. Otherwise the checkbox stays disabled and shows "config not found".
+- If `Claude-3p/configLibrary` is missing (common on Windows, where the folder only appears after the 3P build runs), the UI shows **Create 3P config folder** — click it, then tick the checkbox.
 - Quit Claude Desktop **completely** before toggling (Windows: also from the notification area; macOS: Cmd+Q). Desktop rewrites its config on exit, and on Windows the open file is locked, so toggling while it runs gets overwritten or fails.
 - Desktop only accepts Claude-looking model IDs in `/v1/models`, so the proxy exposes your roles as `claude-opus`, `claude-sonnet`, `claude-haiku`. Restart Desktop after toggling.
 - The proxy must be running for Desktop to work.

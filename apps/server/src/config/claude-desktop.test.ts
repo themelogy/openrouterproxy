@@ -60,7 +60,7 @@ describe('claude desktop toggle', () => {
 });
 
 describe('createDesktopLibrary', () => {
-  it('creates the missing 3P config folder only when Desktop is installed', async () => {
+  it('creates the missing 3P config folder', async () => {
     // DESKTOP_DIR import anında bağlanıyor — yeni dizin için modülü yeniden yükle
     vi.resetModules();
     const bare = mkdtempSync(join(tmpdir(), 'cc-desktop-bare-'));
@@ -68,9 +68,6 @@ describe('createDesktopLibrary', () => {
     const fresh = await import('./claude-desktop.js');
 
     expect(fresh.getDesktopStatus().installed).toBe(false);
-    expect(() => fresh.createDesktopLibrary()).toThrow();
-
-    mkdirSync(join(bare, 'Claude'), { recursive: true });
     expect(fresh.createDesktopLibrary()).toMatchObject({ installed: true, enabled: false });
     expect(existsSync(join(bare, 'Claude-3p', 'configLibrary'))).toBe(true);
 

@@ -65,7 +65,7 @@ export interface DesktopStatus {
 
 // Aranan yolları da döndür: kullanıcı Desktop'ın nereye bakacağını görebilsin
 export function getDesktopStatus(): DesktopStatus {
-  const installed = existsSync(join(DESKTOP_DIR, 'Claude')) && existsSync(LIBRARY_DIR);
+  const installed = existsSync(LIBRARY_DIR);
   const paths = { dir: DESKTOP_DIR, libraryDir: LIBRARY_DIR };
   try {
     return { ...paths, installed, enabled: readJson(META_PATH)?.appliedId === PROFILE_ID };
@@ -74,11 +74,8 @@ export function getDesktopStatus(): DesktopStatus {
   }
 }
 
-// Desktop 3P klasörünü elle oluşturma; sadece Desktop kuruluyken anlamlı
+// Windows'ta Claude-3p henüz açılmamışsa klasör yok — kullanıcı butondan oluşturabilir
 export function createDesktopLibrary(): DesktopStatus {
-  if (!existsSync(join(DESKTOP_DIR, 'Claude'))) {
-    throw new Error(`Claude Desktop kurulumu bulunamadı: ${join(DESKTOP_DIR, 'Claude')}`);
-  }
   mkdirSync(LIBRARY_DIR, { recursive: true });
   return getDesktopStatus();
 }
