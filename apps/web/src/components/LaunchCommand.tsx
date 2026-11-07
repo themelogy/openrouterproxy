@@ -11,12 +11,20 @@ type LaunchCfg = {
 
 type DesktopStatus = { installed: boolean; enabled: boolean; dir: string; libraryDir: string };
 
+type Shell = 'mac' | 'powershell' | 'cmd';
+
+const SHELL_LABELS: Record<Shell, string> = { mac: 'macOS / Linux', powershell: 'PowerShell', cmd: 'cmd' };
+
+// Windows'ta varsayılan PowerShell; macOS/Linux'ta tek satır export sözdizimi
+const DEFAULT_SHELL: Shell = /Win/i.test(navigator.userAgent) ? 'powershell' : 'mac';
+
 function modelId(val: ModelValue): string {
   return typeof val === 'object' ? (val.id || '') : (val || '');
 }
 
 export default function LaunchCommand() {
   const [copied, setCopied] = useState(false);
+  const [shell, setShell] = useState<Shell>(DEFAULT_SHELL);
   const [config, setConfig] = useState<LaunchCfg | null>(null);
   const [desktop, setDesktop] = useState<DesktopStatus | null>(null);
   const [busy, setBusy] = useState(false);
@@ -36,16 +44,22 @@ export default function LaunchCommand() {
     // Proxy kendi API anahtarını kullanır; istemci token'ı yalnızca yerel erişim kontrolü içindir
     const apiKey = 'placeholder';
 
-    return [
-      `ANTHROPIC_BASE_URL='${base}'`,
-      `ANTHROPIC_AUTH_TOKEN='${apiKey}'`,
-      `ANTHROPIC_DEFAULT_OPUS_MODEL='${opus}'`,
-      `ANTHROPIC_DEFAULT_SONNET_MODEL='${sonnet}'`,
-      `ANTHROPIC_DEFAULT_HAIKU_MODEL='${haiku}'`,
-      `API_TIMEOUT_MS=${config.server.timeoutMs || 3000000}`,
-      `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`,
-      'claude --disallowedTools LSP',
-    ].join(' ');
+    const vars: Array<[string, string]> = [
+      ['ANTHROPIC_BASE_URL', base],
+      ['ANTHROPIC_AUTH_TOKEN', apiKey],
+      ['ANTHROPIC_DEFAULT_OPUS_MODEL', opus],
+      ['ANTHROPIC_DEFAULT_SONNET_MODEL', sonnet],
+      ['ANTHROPIC_DEFAULT_HAIKU_MODEL', haiku],
+      ['API_TIMEOUT_MS', String(config.server.timeoutMs || 3000000)],
+      ['CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', '1'],
+    ];
+    const run = 'claude --disallowedTools LSP';
+
+    if (shell === 'mac') return [...vars.map(([k, v]) => `${k}='${v}'`), run].join(' ');
+    const line = shell === 'powershell'
+      ? ([k, v]: [string, string]) => `$env:${k} = '${v}'`
+      : ([k, v]: [string, string]) => `set ${k}=${v}`;
+    return [...vars.map(line), run].join('\n');
   }
 
   function handleCopy() {
@@ -81,6 +95,18 @@ export default function LaunchCommand() {
           <button className={styles.button} onClick={handleCopy}>
             {copied ? 'Copied!' : 'Copy'}
           </button>
+        </div>
+        <div className={styles.row} style={{ marginBottom: 8 }}>
+          {(Object.keys(SHELL_LABELS) as Shell[]).map(s => (
+            <button
+              key={s}
+              className={s === shell ? styles.active : styles.button}
+              aria-pressed={s === shell}
+              onClick={() => setShell(s)}
+            >
+              {SHELL_LABELS[s]}
+            </button>
+          ))}
         </div>
         <pre className={styles.codeBlock}>{buildCommand()}</pre>
       </section>

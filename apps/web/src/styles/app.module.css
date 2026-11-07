@@ -43,6 +43,7 @@ button { background: var(--surface); border: 1px solid var(--border); color: var
 button:hover { border-color: var(--textMuted); }
 button.primary { background: #238636; border-color: #2ea043; color: #fff; }
 button.primary:hover { background: #2c974b; }
+button.active { border-color: var(--accent); color: var(--accent); }
 
 /* Loading */
 .loading { color: var(--textMuted); padding: 40px 0; text-align: center; }
