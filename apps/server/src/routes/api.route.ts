@@ -2,9 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import type { AppConfig } from '@shared/types';
 import { loadConfig, saveConfig, maskApiKey } from '../config/store.js';
 import { syncModelOverrides } from '../config/claude-settings.js';
-import { fetchModels } from '../proxy/openrouter-client.js';
+import { fetchModels, fetchEndpoints } from '../proxy/openrouter-client.js';
 
-const requestLog: Array<{ time: string; model: string; status: number; duration?: string }> = [];
+const requestLog: Array<{ time: string; model: string; status: number; duration?: string; ctxTokens?: number }> = [];
 
 export async function register(app: FastifyInstance) {
   // GET /api/status — proxy health
@@ -76,6 +76,19 @@ export async function register(app: FastifyInstance) {
     } catch { return reply.code(502).send({ error: 'Failed to fetch models' }); }
   });
 
+  // GET /api/models/endpoints?model=<id> — providers serving a model, with pricing
+  app.get('/api/models/endpoints', async (req, reply) => {
+    const modelId = ((req.query as any).model as string || '').trim();
+    if (!modelId) return reply.code(400).send({ error: 'model query param required' });
+    const config = loadConfig();
+    if (!config.openrouter.apiKey) return reply.code(401).send({ error: 'API key not configured' });
+    try {
+      return await fetchEndpoints(modelId, config.openrouter.apiKey);
+    } catch (e) {
+      return reply.code(502).send({ error: `Failed to fetch endpoints: ${(e as Error).message}` });
+    }
+  });
+
   // GET /api/requests — recent request history
   app.get('/api/requests', async () => {
     return requestLog.slice(-50);
@@ -88,6 +101,6 @@ export async function register(app: FastifyInstance) {
   });
 }
 
-export function logRequest(entry: { model: string; status: number; duration?: string }) {
+export function logRequest(entry: { model: string; status: number; duration?: string; ctxTokens?: number }) {
   requestLog.push({ ...entry, time: new Date().toLocaleTimeString() });
 }

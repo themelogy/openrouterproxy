@@ -11,6 +11,39 @@ describe('openrouter client', () => {
     expect(typeof client.fetchModels).toBe('function');
   });
 
+  it('maps endpoints to per-million pricing with defaults for missing fields', async () => {
+    const { mapEndpoints } = await import('./openrouter-client.js');
+    const result = mapEndpoints({
+      data: { endpoints: [{
+        tag: 'deepinfra/fp4',
+        provider_name: 'DeepInfra',
+        pricing: { prompt: '0.00000032', completion: '0.00000089' },
+        context_length: 163840,
+        quantization: 'fp4',
+        uptime_last_30m: 100,
+        latency_last_30m: { p50: 352.5, p75: 477, p90: 797, p99: 4825 },
+        throughput_last_30m: { p50: 254, p75: 185, p90: 126, p99: 36 },
+      }, { tag: 'bare' }] },
+    });
+
+    expect(result[0]).toEqual({
+      tag: 'deepinfra/fp4',
+      providerName: 'DeepInfra',
+      promptUsdPerM: 0.32,
+      completionUsdPerM: 0.89,
+      contextLength: 163840,
+      quantization: 'fp4',
+      uptimeLast30m: 100,
+      latencyMs: 352.5,
+      throughputTokPerSec: 254,
+    });
+    expect(result[1].providerName).toBe('bare');
+    expect(result[1].promptUsdPerM).toBe(0);
+    expect(result[1].contextLength).toBeNull();
+    expect(result[1].latencyMs).toBeNull();
+    expect(result[1].throughputTokPerSec).toBeNull();
+  });
+
   it('rejects with timeout_error when request exceeds timeout', async () => {
     const mockFetch = vi.fn((url: string, opts: { signal?: AbortSignal }) => {
       return new Promise((_, reject) => {

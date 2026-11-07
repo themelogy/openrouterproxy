@@ -4,6 +4,7 @@ import { loadConfig } from '../config/store.js';
 import { resolveModelStrict, toWireProvider } from '../proxy/model-resolver.js';
 import { fetchMessage } from '../proxy/openrouter-client.js';
 import { logRequest } from './api.route.js';
+import { estimateContextTokens } from './token-count.route.js';
 
 export async function register(app: FastifyInstance) {
   app.post('/v1/messages', async (req, reply) => {
@@ -54,7 +55,8 @@ export async function register(app: FastifyInstance) {
       }
 
       const duration = `${Date.now() - started}ms`;
-      logRequest({ model: parsed.model, status: result.status, duration });
+      const ctxTokens = estimateContextTokens(parsed);
+      logRequest({ model: parsed.model, status: result.status, duration, ctxTokens });
 
       return reply.send(result.body);
     } catch (err) {

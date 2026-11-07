@@ -73,6 +73,59 @@ td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
 .tag button { background: none; border: none; padding: 0; font-size: 13px; cursor: pointer; color: var(--textMuted); line-height: 1; }
 .tagList input { flex: 1 1 80px; min-width: 60px; padding: 3px 6px; }
 
+/* Provider picker */
+.hint { font-size: 12px; color: var(--textMuted); margin: 4px 0; }
+.providerList {
+  max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;
+  margin-top: 4px; background: var(--bg);
+  --cols: 14px minmax(90px, 1.4fr) 62px 62px 44px 52px 52px 48px 48px;
+}
+.providerHead,
+.providerList .providerOption { display: grid; grid-template-columns: var(--cols); column-gap: 8px; align-items: center; padding: 0 8px; }
+.providerHead {
+  position: sticky; top: 0; z-index: 1; height: 22px;
+  font-size: 11px; color: var(--textMuted);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.providerList .providerOption { height: 26px; margin: 0; font-size: 12px; color: var(--text); cursor: pointer; border-bottom: 1px solid rgba(48,54,61,.5); }
+.providerList .providerOption:last-child { border-bottom: none; }
+.providerList .providerOption:hover { background: var(--surface); }
+.providerList .providerOption:has(input:checked) { background: rgba(88,166,255,.08); }
+.providerList .providerOption:nth-child(even) { background: rgba(255,255,255,.012); }
+.providerList .providerOption:has(input:checked):hover { background: rgba(88,166,255,.13); }
+.providerList .providerOption input { width: 14px; height: 14px; margin: 0; flex: none; accent-color: var(--accent); }
+.providerTag {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.num { font-variant-numeric: tabular-nums; text-align: right; color: var(--textMuted); }
+.providerOption .num { color: var(--text); }
+.providerQuant { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--textMuted); }
+.providerOption .providerUp { color: var(--green); }
+.providerHead .sortHead {
+  background: none; border: none; border-radius: 0; padding: 0; height: 100%; white-space: normal;
+  font: inherit; font-size: 11px; color: inherit; text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 3px;
+}
+.providerHead .sortHead.num { justify-content: flex-end; width: 100%; }
+.providerHead .sortHead:hover { color: var(--text); }
+.providerHead .sortHead:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+.sortHead > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.sortActive { color: var(--accent); }
+.sortArrow { font-size: 10px; line-height: 1; width: 8px; display: inline-block; }
+.providerOption .providerDegraded { color: var(--orange); }
+.empty { color: var(--border); }
+
+/* Dar ekranda ctx/quant kolonlarını düşür: kalan 7 sütun sığar */
+@media (max-width: 560px) {
+  .providerList { --cols: 14px minmax(48px, 1fr) 40px 40px 40px 42px 42px; column-gap: 4px; }
+  .providerList .providerOption { font-size: 11px; }
+  .providerHead { font-size: 10px; }
+  .providerHead > :nth-child(5), .providerHead > :nth-child(6),
+  .providerList .providerOption > :nth-child(5),
+  .providerList .providerOption > :nth-child(6) { display: none; }
+}
+
 /* Section header */
 .sectionHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 

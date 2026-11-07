@@ -1,5 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { countTokens } from './token-count.route.js';
+import { countTokens, estimateContextTokens } from './token-count.route.js';
+
+describe('estimateContextTokens', () => {
+  it('adds system prompt and tool definitions to message tokens', () => {
+    const messages = [{ role: 'user', content: 'Hello world' }];
+    const base = countTokens(messages).total_tokens;
+    expect(estimateContextTokens({ messages })).toBe(base);
+    // 400 chars → 100 tokens for system, 400 for tools
+    const withExtras = estimateContextTokens({
+      messages,
+      system: 'x'.repeat(400),
+      tools: [{ name: 'X'.repeat(400) }],
+    });
+    expect(withExtras).toBe(base + 100 + Math.ceil(JSON.stringify([{ name: 'X'.repeat(400) }]).length / 4));
+  });
+});
 
 describe('countTokens', () => {
   it('estimates tokens for a simple text message', () => {

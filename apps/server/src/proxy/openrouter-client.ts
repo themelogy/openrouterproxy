@@ -59,3 +59,56 @@ export async function fetchModels(signal?: AbortSignal): Promise<{ models: Array
   const data = await response.json();
   return { models: (data.data ?? []).map((m: any) => ({ id: m.id, name: m.name })) };
 }
+
+export interface ModelEndpoint {
+  tag: string;
+  providerName: string;
+  /** USD per 1M tokens */
+  promptUsdPerM: number;
+  /** USD per 1M tokens */
+  completionUsdPerM: number;
+  contextLength: number | null;
+  quantization: string | null;
+  uptimeLast30m: number | null;
+  /** median ms, last 30m */
+  latencyMs: number | null;
+  /** median tokens/sec, last 30m */
+  throughputTokPerSec: number | null;
+}
+
+// $/token → $/1M, 4 basamak (float artıklarını at)
+const perM = (v: unknown) => Math.round(Number(v ?? 0) * 1e10) / 1e4;
+
+// Bu metrikler auth'lu istekte { p50, p75, p90, p99 } olarak döner
+const p50 = (v: any): number | null => typeof v === 'number' ? v : (typeof v?.p50 === 'number' ? v.p50 : null);
+
+export function mapEndpoints(data: any): ModelEndpoint[] {
+  return (data?.data?.endpoints ?? []).map((e: any) => ({
+    tag: e.tag,
+    providerName: e.provider_name ?? e.tag,
+    promptUsdPerM: perM(e.pricing?.prompt),
+    completionUsdPerM: perM(e.pricing?.completion),
+    contextLength: e.context_length ?? null,
+    quantization: e.quantization ?? null,
+    uptimeLast30m: e.uptime_last_30m ?? null,
+    latencyMs: p50(e.latency_last_30m),
+    throughputTokPerSec: p50(e.throughput_last_30m),
+  }));
+}
+
+// Endpoint fiyatları nadiren değişir; model başına 5 dk yeter.
+const ENDPOINT_TTL_MS = 5 * 60_000;
+const endpointCache = new Map<string, { at: number; endpoints: ModelEndpoint[] }>();
+
+export async function fetchEndpoints(modelId: string, apiKey: string, signal?: AbortSignal): Promise<ModelEndpoint[]> {
+  const cached = endpointCache.get(modelId);
+  if (cached && Date.now() - cached.at < ENDPOINT_TTL_MS) return cached.endpoints;
+
+  // Auth'lu istekte latency/throughput geliyor; anonim çağrıda bu alanlar null.
+  const url = `https://openrouter.ai/api/v1/models/${modelId}/endpoints`;
+  const response = await fetch(url, { signal, headers: { Authorization: `Bearer ${apiKey}` } });
+  if (!response.ok) throw new Error(`endpoints fetch failed: ${response.status}`);
+  const endpoints = mapEndpoints(await response.json());
+  endpointCache.set(modelId, { at: Date.now(), endpoints });
+  return endpoints;
+}

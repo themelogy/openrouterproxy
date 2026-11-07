@@ -49,6 +49,18 @@ export function countTokens(messages: Array<{ role: string; content: unknown }>)
   return { total_tokens: totalTokens };
 }
 
+// Bütün context: mesajlar + sistem prompt'u + tool tanımları
+export function estimateContextTokens(body: {
+  messages: Array<{ role: string; content: unknown }>;
+  system?: unknown;
+  tools?: unknown;
+}): number {
+  const extra =
+    (body.system === undefined ? 0 : JSON.stringify(body.system).length) +
+    (body.tools === undefined ? 0 : JSON.stringify(body.tools).length);
+  return countTokens(body.messages).total_tokens + Math.ceil(extra / 4);
+}
+
 export async function register(app: FastifyInstance) {
   app.post('/v1/messages/count_tokens', async (req) => {
     const messages = req.body as { messages?: Array<{ role: string; content: unknown }> };

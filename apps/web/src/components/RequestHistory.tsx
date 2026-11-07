@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import styles from '../styles/app.module.css';
 
-type RequestEntry = { time: string; model: string; status: number; duration?: string; error?: string };
+type RequestEntry = { time: string; model: string; status: number; duration?: string; ctxTokens?: number; error?: string };
+
+const fmtCtx = (n?: number) => n === undefined ? '-' : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
 
 export default function RequestHistory() {
   const [requests, setRequests] = useState<RequestEntry[]>([]);
@@ -30,7 +32,7 @@ export default function RequestHistory() {
       </h2>
       <table>
         <thead>
-          <tr><th>Time</th><th>Model</th><th>Status</th><th>Duration</th></tr>
+          <tr><th>Time</th><th>Model</th><th>Status</th><th>Context</th><th>Duration</th></tr>
         </thead>
         <tbody>
           {requests.map((r, i) => (
@@ -38,6 +40,7 @@ export default function RequestHistory() {
               <td>{r.time}</td>
               <td>{r.model}</td>
               <td><span className={`${styles.badge} ${r.status < 400 ? styles.badgeOk : styles.badgeErr}`}>{r.status}</span></td>
+              <td title={r.ctxTokens ? `${r.ctxTokens} tokens` : ''}>{fmtCtx(r.ctxTokens)}</td>
               <td>{r.duration || '-'}</td>
             </tr>
           ))}
