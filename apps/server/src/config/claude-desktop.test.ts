@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -25,7 +25,7 @@ beforeAll(async () => {
 
 describe('claude desktop toggle', () => {
   it('restores the previous settings when disabled', () => {
-    expect(mod.getDesktopStatus()).toEqual({ installed: true, enabled: false });
+    expect(mod.getDesktopStatus()).toMatchObject({ installed: true, enabled: false, dir: desktopDir });
 
     mod.enableDesktop('http://127.0.0.1:4000');
     expect(mod.getDesktopStatus().enabled).toBe(true);
@@ -55,6 +55,25 @@ describe('claude desktop toggle', () => {
     expect(readJson(otherCfg).preferences).toEqual({ theme: 'dark' });
     // Bizim oluşturduğumuz dosya tamamen geri alınır
     expect(existsSync(mainCfg)).toBe(false);
-    expect(mod.getDesktopStatus()).toEqual({ installed: true, enabled: false });
+    expect(mod.getDesktopStatus()).toMatchObject({ installed: true, enabled: false, dir: desktopDir });
+  });
+});
+
+describe('createDesktopLibrary', () => {
+  it('creates the missing 3P config folder only when Desktop is installed', async () => {
+    // DESKTOP_DIR import anında bağlanıyor — yeni dizin için modülü yeniden yükle
+    vi.resetModules();
+    const bare = mkdtempSync(join(tmpdir(), 'cc-desktop-bare-'));
+    process.env.CLAUDE_DESKTOP_DIR = bare;
+    const fresh = await import('./claude-desktop.js');
+
+    expect(fresh.getDesktopStatus().installed).toBe(false);
+    expect(() => fresh.createDesktopLibrary()).toThrow();
+
+    mkdirSync(join(bare, 'Claude'), { recursive: true });
+    expect(fresh.createDesktopLibrary()).toMatchObject({ installed: true, enabled: false });
+    expect(existsSync(join(bare, 'Claude-3p', 'configLibrary'))).toBe(true);
+
+    process.env.CLAUDE_DESKTOP_DIR = desktopDir;
   });
 });

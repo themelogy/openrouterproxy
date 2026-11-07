@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AppConfig } from '@shared/types';
 import { loadConfig, saveConfig, maskApiKey } from '../config/store.js';
 import { syncModelOverrides } from '../config/claude-settings.js';
-import { getDesktopStatus, enableDesktop, disableDesktop } from '../config/claude-desktop.js';
+import { getDesktopStatus, enableDesktop, disableDesktop, createDesktopLibrary } from '../config/claude-desktop.js';
 import { fetchModels, fetchEndpoints } from '../proxy/openrouter-client.js';
 
 const requestLog: Array<{ time: string; model: string; status: number; duration?: string; ctxTokens?: number }> = [];
@@ -93,10 +93,11 @@ export async function register(app: FastifyInstance) {
   // GET /api/claude-desktop — Desktop 3P entegrasyon durumu
   app.get('/api/claude-desktop', async () => getDesktopStatus());
 
-  // POST /api/claude-desktop — { enabled: boolean }; kapatınca önceki ayarlar geri yazılır
+  // POST /api/claude-desktop — { enabled: boolean } veya { create: true }
   app.post('/api/claude-desktop', async (req, reply) => {
-    const { enabled } = (req.body ?? {}) as { enabled?: boolean };
+    const { enabled, create } = (req.body ?? {}) as { enabled?: boolean; create?: boolean };
     try {
+      if (create) return createDesktopLibrary();
       if (!enabled) return disableDesktop();
       const cfg = loadConfig();
       const host = cfg.server.host === '0.0.0.0' ? '127.0.0.1' : cfg.server.host;

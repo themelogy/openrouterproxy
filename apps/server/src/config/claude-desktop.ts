@@ -56,17 +56,35 @@ function writeJson(path: string, data: unknown) {
   }
 }
 
-export function getDesktopStatus(): { installed: boolean; enabled: boolean } {
+export interface DesktopStatus {
+  installed: boolean;
+  enabled: boolean;
+  dir: string;
+  libraryDir: string;
+}
+
+// Aranan yolları da döndür: kullanıcı Desktop'ın nereye bakacağını görebilsin
+export function getDesktopStatus(): DesktopStatus {
   const installed = existsSync(join(DESKTOP_DIR, 'Claude')) && existsSync(LIBRARY_DIR);
+  const paths = { dir: DESKTOP_DIR, libraryDir: LIBRARY_DIR };
   try {
-    return { installed, enabled: readJson(META_PATH)?.appliedId === PROFILE_ID };
+    return { ...paths, installed, enabled: readJson(META_PATH)?.appliedId === PROFILE_ID };
   } catch {
-    return { installed, enabled: false };
+    return { ...paths, installed, enabled: false };
   }
 }
 
-export function enableDesktop(baseUrl: string): { installed: boolean; enabled: boolean } {
-  if (!existsSync(LIBRARY_DIR)) throw new Error('Claude Desktop 3P config klasörü bulunamadı');
+// Desktop 3P klasörünü elle oluşturma; sadece Desktop kuruluyken anlamlı
+export function createDesktopLibrary(): DesktopStatus {
+  if (!existsSync(join(DESKTOP_DIR, 'Claude'))) {
+    throw new Error(`Claude Desktop kurulumu bulunamadı: ${join(DESKTOP_DIR, 'Claude')}`);
+  }
+  mkdirSync(LIBRARY_DIR, { recursive: true });
+  return getDesktopStatus();
+}
+
+export function enableDesktop(baseUrl: string): DesktopStatus {
+  if (!existsSync(LIBRARY_DIR)) throw new Error(`Claude Desktop 3P config klasörü bulunamadı: ${LIBRARY_DIR}`);
 
   // Yeniden açmada önceki yedeği koru: asıl "eski hal" ilk açmadaki değerler
   const prior: Backup | null = existsSync(BACKUP_PATH)
@@ -105,7 +123,7 @@ export function enableDesktop(baseUrl: string): { installed: boolean; enabled: b
   return getDesktopStatus();
 }
 
-export function disableDesktop(): { installed: boolean; enabled: boolean } {
+export function disableDesktop(): DesktopStatus {
   const backup: Backup | null = existsSync(BACKUP_PATH)
     ? JSON.parse(readFileSync(BACKUP_PATH, 'utf-8'))
     : null;

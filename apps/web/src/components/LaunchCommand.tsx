@@ -9,7 +9,7 @@ type LaunchCfg = {
   models: { opus: ModelValue; sonnet: ModelValue; haiku: ModelValue };
 };
 
-type DesktopStatus = { installed: boolean; enabled: boolean };
+type DesktopStatus = { installed: boolean; enabled: boolean; dir: string; libraryDir: string };
 
 function modelId(val: ModelValue): string {
   return typeof val === 'object' ? (val.id || '') : (val || '');
@@ -56,13 +56,13 @@ export default function LaunchCommand() {
     });
   }
 
-  function toggleDesktop(enabled: boolean) {
+  function postDesktop(body: { enabled?: boolean; create?: boolean }) {
     setBusy(true);
     setError(null);
     fetch('/api/claude-desktop', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify(body),
     })
       .then(async r => {
         const body = await r.json();
@@ -94,12 +94,18 @@ export default function LaunchCommand() {
             type="checkbox"
             checked={!!desktop?.enabled}
             disabled={!desktop?.installed || busy}
-            onChange={e => toggleDesktop(e.target.checked)}
+            onChange={e => postDesktop({ enabled: e.target.checked })}
           />
           Route Claude Desktop through this proxy
         </label>
         {desktop && !desktop.installed && (
-          <div className={styles.hint}>Claude Desktop 3P config not found on this machine.</div>
+          <div className={styles.hint}>
+            Claude Desktop 3P config not found. Looked in <code>{desktop.libraryDir}</code>.
+            <button className={styles.button} disabled={busy} onClick={() => postDesktop({ create: true })}>
+              Create 3P config folder
+            </button>
+            Set <code>CLAUDE_DESKTOP_DIR</code> to the folder containing <code>Claude-3p</code>, then restart the proxy.
+          </div>
         )}
         {desktop?.installed && (
           <div className={styles.hint}>
