@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.local
+.serena
+.superpowers
+.claude
+/docs
+data/
+logs/
+.DS_Store
+project.md
+*.log
