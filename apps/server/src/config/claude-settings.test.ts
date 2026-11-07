@@ -11,13 +11,14 @@ describe('claude settings sync', () => {
   beforeEach(cleanup);
   afterEach(cleanup);
 
-  it('writes canonical model IDs covering current Claude model families', () => {
+  it('writes exactly the three canonical model IDs', () => {
     syncModelOverrides({ opus: 'deepseek/opus', sonnet: { id: 'deepseek/sonnet' }, haiku: 'deepseek/haiku' });
     const raw = JSON.parse(readFileSync(CLAUDE_SETTINGS_PATH, 'utf-8'));
-    expect(raw.modelOverrides['claude-opus-4-6']).toBe('deepseek/opus');
-    expect(raw.modelOverrides['claude-opus-5-5']).toBe('deepseek/opus');
-    expect(raw.modelOverrides['claude-sonnet-4-6']).toBe('deepseek/sonnet');
-    expect(raw.modelOverrides['claude-haiku-4-5']).toBe('deepseek/haiku');
+    expect(raw.modelOverrides).toEqual({
+      'claude-opus-4-6': 'deepseek/opus',
+      'claude-sonnet-4-6': 'deepseek/sonnet',
+      'claude-haiku-4-5': 'deepseek/haiku',
+    });
   });
 
   it('preserves unrelated settings and user-added overrides', () => {
