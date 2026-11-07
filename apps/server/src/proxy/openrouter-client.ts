@@ -34,8 +34,13 @@ export async function fetchMessage(
       signal: controller.signal,
     });
 
+    // fetch already decoded the body: forwarding content-encoding/content-length
+    // makes downstream clients try to gunzip plain JSON.
     const respHeaders: Record<string, string> = {};
-    response.headers.forEach((val, key) => { respHeaders[key] = val; });
+    response.headers.forEach((val, key) => {
+      if (key === 'content-encoding' || key === 'content-length') return;
+      respHeaders[key] = val;
+    });
 
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('text/event-stream')) {

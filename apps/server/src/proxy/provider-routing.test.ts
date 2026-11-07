@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ModelConfig } from '@shared/types';
-import { resolveModelStrict } from './model-resolver.js';
+import { resolveModelStrict, toWireProvider } from './model-resolver.js';
 
 describe('provider routing', () => {
   it('returns provider options when model config uses object format with sort', () => {
@@ -94,6 +94,24 @@ describe('provider routing', () => {
     if (!('error' in result)) {
       expect(result.providerOptions).toEqual({ sort: 'throughput' as const });
     }
+  });
+
+  it('applies role provider options when Claude Code sends the resolved ID', () => {
+    const config: ModelConfig = {
+      opus: { id: 'deepseek/deepseek-v4.1-flash-1017', providerOptions: { only: ['inference-net/us'], allowFallbacks: false } },
+      sonnet: '',
+      haiku: '',
+    };
+    const result = resolveModelStrict('deepseek/deepseek-v4.1-flash-1017', config);
+    expect('error' in result).toBe(false);
+    if (!('error' in result)) {
+      expect(result.providerOptions).toEqual({ only: ['inference-net/us'], allowFallbacks: false });
+    }
+  });
+
+  it('serializes allowFallbacks as allow_fallbacks for the wire', () => {
+    expect(toWireProvider({ only: ['inference-net/us'], allowFallbacks: false, sort: 'price' }))
+      .toEqual({ only: ['inference-net/us'], allow_fallbacks: false, sort: 'price' });
   });
 
   it('supports all provider options together', () => {

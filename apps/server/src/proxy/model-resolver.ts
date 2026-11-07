@@ -28,8 +28,29 @@ export function resolveModelStrict(requestModel: string, config: ModelConfig): {
     return { resolved: entry.id, providerOptions: entry.providerOptions };
   }
 
+  // Claude Code sends the resolved ID (via modelOverrides), so match configured role IDs too.
+  // shortcut: two roles sharing one ID resolve to the first role's options
+  for (const role of ['opus', 'sonnet', 'haiku'] as const) {
+    const entry = parseModelValue(config[role]);
+    if (entry.id && entry.id === requestModel) {
+      return { resolved: requestModel, providerOptions: entry.providerOptions };
+    }
+  }
+
   // Pass through any non-alias model ID (assumed to be direct OpenRouter model)
   return { resolved: requestModel };
+}
+
+// OpenRouter'ın Anthropic uyumlu ucu camelCase allowFallbacks'ı reddeder
+const WIRE_PROVIDER_KEYS: Record<string, string> = { allowFallbacks: 'allow_fallbacks' };
+
+export function toWireProvider(opts: ProviderOptions): Record<string, unknown> {
+  const wire: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(opts)) {
+    if (value === undefined) continue;
+    wire[WIRE_PROVIDER_KEYS[key] ?? key] = value;
+  }
+  return wire;
 }
 
 export function resolveModelAlias(requestModel: string, config: ModelConfig): string | null {

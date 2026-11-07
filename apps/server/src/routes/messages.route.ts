@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { MessageRequestSchema, ZodMessageRequest, stripAnthropicFields } from '../proxy/request-validator.js';
 import { loadConfig } from '../config/store.js';
-import { resolveModelStrict } from '../proxy/model-resolver.js';
+import { resolveModelStrict, toWireProvider } from '../proxy/model-resolver.js';
 import { fetchMessage } from '../proxy/openrouter-client.js';
 import { logRequest } from './api.route.js';
 
@@ -36,7 +36,7 @@ export async function register(app: FastifyInstance) {
     // Resolve alias model to actual OpenRouter model ID
     upstreamBody.model = modelResult.resolved;
     if (modelResult.providerOptions) {
-      upstreamBody.provider = modelResult.providerOptions;
+      upstreamBody.provider = toWireProvider(modelResult.providerOptions);
     }
 
     const abortController = new AbortController();

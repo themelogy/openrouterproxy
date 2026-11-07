@@ -42,6 +42,22 @@ describe('openrouter client', () => {
     expect(result.status).toBe(200);
   });
 
+  it('drops content-encoding/content-length from upstream headers', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: new Map([['content-type', 'application/json'], ['content-encoding', 'gzip'], ['content-length', '881']]),
+      json: async () => ({ id: 'msg_1' }),
+    });
+    globalThis.fetch = mockFetch as any;
+
+    const { fetchMessage } = await import('./openrouter-client.js');
+    const result = await fetchMessage({ baseUrl: 'http://example.com', apiKey: 'test' }, 'test', {});
+
+    expect(result.headers['content-type']).toBe('application/json');
+    expect(result.headers['content-encoding']).toBeUndefined();
+    expect(result.headers['content-length']).toBeUndefined();
+  });
+
   it('rejects when client abort signal fires', async () => {
     const controller = new AbortController();
 
