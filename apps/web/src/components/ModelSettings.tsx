@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from '../styles/app.module.css';
 
 type ProviderOptions = { sort?: 'price' | 'throughput'; only?: string[]; ignore?: string[]; allowFallbacks?: boolean };
@@ -237,33 +237,50 @@ function ProviderPicker({ label, selected, onChange, endpoints, error, emptyHint
   );
 }
 
-function ModelAutocomplete({ value, onChange, allModels }: { value: string; onChange: (id: string) => void; allModels: ModelOption[] }) {
+function ModelAutocomplete({ value, onChange }: { value: string; onChange: (id: string) => void }) {
   const [query, setQuery] = useState(value);
-  const [filtered, setFiltered] = useState<ModelOption[]>([]);
+  const [matches, setMatches] = useState<ModelOption[]>([]);
   const [show, setShow] = useState(false);
 
   useEffect(() => { setQuery(value); }, [value]);
 
-  function filter(q: string) {
-    setQuery(q);
-    if (!q.trim()) { setFiltered([]); setShow(false); onChange(q); return; }
-    const lc = q.toLowerCase();
-    const matches = allModels.filter(m => m.id.toLowerCase().includes(lc) || m.name?.toLowerCase().includes(lc));
-    setFiltered(matches.slice(0, 20));
-    setShow(true);
-    onChange(q);
+  // Canlı arama: her tuşta sunucuya sor (200ms debounce), eski yanıtı iptal et
+  useEffect(() => {
+    const q = query.trim();
+    if (!q || q === value) { setMatches([]); setShow(false); return; }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => {
+      fetch(`/api/models?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
+        .then(r => r.ok ? r.json() : [])
+        .then((list: ModelOption[]) => { setMatches(list); setShow(true); })
+        .catch(() => {});
+    }, 200);
+    return () => { clearTimeout(timer); ctrl.abort(); };
+  }, [query, value]);
+
+  // Seçimden sonra gelen blur, tıklanan id'yi yazılan metinle ezmesin
+  const picked = useRef(false);
+
+  function pick(id: string) {
+    picked.current = true;
+    setQuery(id);
+    onChange(id);
+    setShow(false);
   }
 
   return (
     <div style={{ position: 'relative' }}>
-      <input type="text" value={query} onChange={e => filter(e.target.value)}
-        onFocus={() => filtered.length && setShow(true)} onBlur={() => setTimeout(() => setShow(false), 200)}
+      <input type="text" value={query} onChange={e => setQuery(e.target.value)}
+        onBlur={() => {
+          if (!picked.current) onChange(query);
+          picked.current = false;
+          setTimeout(() => setShow(false), 200);
+        }}
         placeholder="type to search models..." autoComplete="off" />
-      {show && filtered.length > 0 && (
+      {show && matches.length > 0 && (
         <div className={styles.autocomplete}>
-          {filtered.map(opt => (
-            <div key={opt.id} className={styles.autocompleteItem}
-              onMouseDown={() => { filter(opt.id); setShow(false); }}>
+          {matches.map(opt => (
+            <div key={opt.id} className={styles.autocompleteItem} onMouseDown={() => pick(opt.id)}>
               <span>{opt.id}</span>
               {opt.name && <span style={{ color: 'var(--textMuted)', fontSize: 12, marginLeft: 8 }}>{opt.name}</span>}
             </div>
@@ -280,20 +297,8 @@ export default function ModelSettings({ config, onSave }: {
 }) {
   const [models, setModels] = useState(config.models);
   const [activeTab, setActiveTab] = useState<keyof Config['models']>('opus');
-  const [allModels, setAllModels] = useState<ModelOption[]>([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => { setModels(config.models); }, [config]);
-
-  async function refreshModels() {
-    setLoading(true);
-    try {
-      const r = await fetch('/api/models');
-      if (r.ok) setAllModels(await r.json());
-    } catch { /* */ } finally { setLoading(false); }
-  }
-
-  useEffect(() => { refreshModels(); }, []);
 
   function updateModel(key: keyof Config['models'], val: ModelValue) {
     setModels({ ...models, [key]: val });
@@ -309,7 +314,7 @@ export default function ModelSettings({ config, onSave }: {
         <ModelAutocomplete value={id} onChange={newId => {
           if (typeof value === 'object') updateModel(key, { ...value, id: newId } as ModelValue);
           else updateModel(key, newId);
-        }} allModels={allModels} />
+        }} />
 
         <ProviderBlock value={value} onChange={v => updateModel(key, v)} />
 
@@ -339,7 +344,6 @@ export default function ModelSettings({ config, onSave }: {
 
       <div className={styles.row}>
         <button onClick={() => onSave({ models })} className={styles.primary}>Save Models</button>
-        <button onClick={refreshModels} disabled={loading}>{loading ? 'Updating...' : 'Update List'}</button>
       </div>
     </section>
   );

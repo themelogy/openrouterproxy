@@ -7,6 +7,15 @@ import { fetchModels, fetchEndpoints } from '../proxy/openrouter-client.js';
 
 const requestLog: Array<{ time: string; model: string; status: number; duration?: string; ctxTokens?: number }> = [];
 
+// Canlı arama her tuşa bir istek atıyor; OpenRouter listesi 1 dk önbellekte dursun
+let modelsCache: { at: number; models: Array<{ id: string; name: string }> } | null = null;
+async function allModels() {
+  if (modelsCache && Date.now() - modelsCache.at < 60_000) return modelsCache;
+  const data = await fetchModels();
+  modelsCache = { at: Date.now(), models: data.models };
+  return modelsCache;
+}
+
 export async function register(app: FastifyInstance) {
   // GET /api/status — proxy health
   app.get('/api/status', async () => {
@@ -69,11 +78,10 @@ export async function register(app: FastifyInstance) {
     const config = loadConfig();
     if (!config.openrouter.apiKey) return reply.code(401).send({ error: 'API key not configured' });
     try {
-      const data = await fetchModels();
+      const { models } = await allModels();
       const q = ((req.query as any).q as string || '').toLowerCase().trim();
-      let models = data.models;
-      if (q) { const lc = q; models = models.filter(m => m.id.toLowerCase().includes(lc) || m.name?.toLowerCase().includes(lc)); }
-      return models.slice(0, 50);
+      if (!q) return models;
+      return models.filter(m => m.id.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q));
     } catch { return reply.code(502).send({ error: 'Failed to fetch models' }); }
   });
 
