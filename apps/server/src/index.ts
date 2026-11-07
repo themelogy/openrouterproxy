@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import Fastify from 'fastify';
 import { register as apiRoute } from './routes/api.route.js';
 import { register as messagesRoute } from './routes/messages.route.js';
@@ -62,6 +62,8 @@ async function main() {
   app.log.info({ address: `http://${config.server.host}:${config.server.port}` }, 'Server listening');
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// file:// öneki elle eklenirse Windows yolları (C:\) eşleşmez — pathToFileURL kullan
+const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';
+if (entry && import.meta.url === entry) {
   main().catch((err) => { console.error(err); process.exit(1); });
 }
