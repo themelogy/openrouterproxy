@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { OpenRouterConfig } from '@shared/types';
 
 export async function fetchMessage(
@@ -54,10 +55,48 @@ export async function fetchMessage(
   }
 }
 
+const MODELS_TTL_MS = 10 * 60_000;
+const MODELS_TIMEOUT_MS = 15_000;
+let modelsCache: { at: number; models: Array<{ id: string; name: string }> } | null = null;
+let modelsInFlight: Promise<Array<{ id: string; name: string }>> | null = null;
+
+// Bir çağıranın iptali paylaşılan upstream isteği iptal etmemeli; her çağıran kendi sinyaline yarışır.
+function abortable<T>(p: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return p;
+  if (signal.aborted) return Promise.reject(new DOMException('aborted', 'AbortError'));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException('aborted', 'AbortError'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    p.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
+  });
+}
+
 export async function fetchModels(signal?: AbortSignal): Promise<{ models: Array<{ id: string; name: string }> }> {
-  const response = await fetch('https://openrouter.ai/api/v1/models', { signal });
-  const data = await response.json();
-  return { models: (data.data ?? []).map((m: any) => ({ id: m.id, name: m.name })) };
+  if (modelsCache && Date.now() - modelsCache.at < MODELS_TTL_MS) {
+    return { models: [...modelsCache.models] };
+  }
+
+  if (!modelsInFlight) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), MODELS_TIMEOUT_MS);
+    modelsInFlight = (async () => {
+      const response = await fetch('https://openrouter.ai/api/v1/models', { signal: controller.signal });
+      if (!response.ok) throw new Error(`models fetch failed: ${response.status}`);
+      const data = await response.json();
+      return (data.data ?? []).map((m: any) => ({ id: m.id, name: m.name }));
+    })().then(
+      models => {
+        modelsCache = { at: Date.now(), models };
+        return models;
+      },
+      err => { throw err; },
+    ).finally(() => {
+      clearTimeout(timer);
+      modelsInFlight = null;
+    });
+  }
+
+  return { models: [...await abortable(modelsInFlight, signal)] };
 }
 
 export interface ModelEndpoint {
@@ -98,17 +137,43 @@ export function mapEndpoints(data: any): ModelEndpoint[] {
 
 // Endpoint fiyatları nadiren değişir; model başına 5 dk yeter.
 const ENDPOINT_TTL_MS = 5 * 60_000;
+const ENDPOINT_MAX_ENTRIES = 256;
 const endpointCache = new Map<string, { at: number; endpoints: ModelEndpoint[] }>();
+const endpointInFlight = new Map<string, Promise<ModelEndpoint[]>>();
+
+const keyFingerprint = (apiKey: string) => createHash('sha256').update(apiKey).digest('hex').slice(0, 16);
+
+function pruneEndpoints() {
+  const now = Date.now();
+  for (const [k, v] of endpointCache) if (now - v.at >= ENDPOINT_TTL_MS) endpointCache.delete(k);
+  while (endpointCache.size > ENDPOINT_MAX_ENTRIES) {
+    let oldestKey = '';
+    let oldestAt = Infinity;
+    for (const [k, v] of endpointCache) if (v.at < oldestAt) { oldestAt = v.at; oldestKey = k; }
+    endpointCache.delete(oldestKey);
+  }
+}
 
 export async function fetchEndpoints(modelId: string, apiKey: string, signal?: AbortSignal): Promise<ModelEndpoint[]> {
-  const cached = endpointCache.get(modelId);
-  if (cached && Date.now() - cached.at < ENDPOINT_TTL_MS) return cached.endpoints;
+  const key = `${modelId}|${keyFingerprint(apiKey)}`;
+  const cached = endpointCache.get(key);
+  if (cached && Date.now() - cached.at < ENDPOINT_TTL_MS) return [...cached.endpoints];
+  if (cached) endpointCache.delete(key);
 
-  // Auth'lu istekte latency/throughput geliyor; anonim çağrıda bu alanlar null.
-  const url = `https://openrouter.ai/api/v1/models/${modelId}/endpoints`;
-  const response = await fetch(url, { signal, headers: { Authorization: `Bearer ${apiKey}` } });
-  if (!response.ok) throw new Error(`endpoints fetch failed: ${response.status}`);
-  const endpoints = mapEndpoints(await response.json());
-  endpointCache.set(modelId, { at: Date.now(), endpoints });
-  return endpoints;
+  let pending = endpointInFlight.get(key);
+  if (!pending) {
+    pending = (async () => {
+      // Auth'lu istekte latency/throughput geliyor; anonim çağrıda bu alanlar null.
+      const url = `https://openrouter.ai/api/v1/models/${modelId}/endpoints`;
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } });
+      if (!response.ok) throw new Error(`endpoints fetch failed: ${response.status}`);
+      const endpoints = mapEndpoints(await response.json());
+      endpointCache.set(key, { at: Date.now(), endpoints });
+      pruneEndpoints();
+      return endpoints;
+    })().finally(() => endpointInFlight.delete(key));
+    endpointInFlight.set(key, pending);
+  }
+
+  return [...await abortable(pending, signal)];
 }

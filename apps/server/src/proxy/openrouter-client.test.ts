@@ -111,6 +111,120 @@ describe('openrouter client', () => {
     await expect(fetchMessage(config, 'test', body, controller.signal)).rejects.toThrow('timeout');
   });
 
+  it('collapses concurrent fetchModels calls into one upstream request', async () => {
+    vi.resetModules();
+    const mockFetch = vi.fn(async () => new Response(JSON.stringify({ data: [{ id: 'a', name: 'A' }] })));
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchModels } = await import('./openrouter-client.js');
+    const [a, b] = await Promise.all([fetchModels(), fetchModels()]);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(a.models).toEqual(b.models);
+    vi.unstubAllGlobals();
+  });
+
+  it('serves fetchModels from cache within the TTL and refetches after it', async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    const mockFetch = vi.fn(async () => new Response(JSON.stringify({ data: [{ id: 'a', name: 'A' }] })));
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchModels } = await import('./openrouter-client.js');
+    await fetchModels();
+    await fetchModels();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(Date.now() + 10 * 60_000 + 1);
+    await fetchModels();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('does not cache a failed fetchModels response', async () => {
+    vi.resetModules();
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response('nope', { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ id: 'a', name: 'A' }] })));
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchModels } = await import('./openrouter-client.js');
+    await expect(fetchModels()).rejects.toThrow();
+    const ok = await fetchModels();
+    expect(ok.models).toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('does not let one caller abort reject other fetchModels waiters', async () => {
+    vi.resetModules();
+    let release!: () => void;
+    const gate = new Promise<void>(r => { release = r; });
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      await gate;
+      return new Response(JSON.stringify({ data: [{ id: 'a', name: 'A' }] }));
+    }));
+    const { fetchModels } = await import('./openrouter-client.js');
+    const ac = new AbortController();
+    const aborted = fetchModels(ac.signal);
+    const survivor = fetchModels();
+    ac.abort();
+    await expect(aborted).rejects.toThrow();
+    release();
+    await expect(survivor).resolves.toEqual({ models: [{ id: 'a', name: 'A' }] });
+    vi.unstubAllGlobals();
+  });
+
+  it('returns a copy of the cached models array', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: [{ id: 'a', name: 'A' }] }))));
+    const { fetchModels } = await import('./openrouter-client.js');
+    const first = await fetchModels();
+    first.models.push({ id: 'injected', name: 'x' });
+    const second = await fetchModels();
+    expect(second.models.map(m => m.id)).toEqual(['a']);
+    vi.unstubAllGlobals();
+  });
+
+  it('collapses concurrent fetchEndpoints calls for the same model and key', async () => {
+    vi.resetModules();
+    const mockFetch = vi.fn(async () => new Response(JSON.stringify({ data: { endpoints: [{ tag: 'x' }] } })));
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchEndpoints } = await import('./openrouter-client.js');
+    await Promise.all([fetchEndpoints('m', 'key'), fetchEndpoints('m', 'key')]);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps a separate endpoint cache entry per API key', async () => {
+    vi.resetModules();
+    const mockFetch = vi.fn(async () => new Response(JSON.stringify({ data: { endpoints: [{ tag: 'x' }] } })));
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchEndpoints } = await import('./openrouter-client.js');
+    await fetchEndpoints('m', 'key-a');
+    await fetchEndpoints('m', 'key-b');
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it('does not cache a failed endpoints response', async () => {
+    vi.resetModules();
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce(new Response('bad', { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: { endpoints: [{ tag: 'x' }] } })));
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchEndpoints } = await import('./openrouter-client.js');
+    await expect(fetchEndpoints('m', 'k')).rejects.toThrow();
+    await expect(fetchEndpoints('m', 'k')).resolves.toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('returns a copy of the cached endpoints array', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: { endpoints: [{ tag: 'x' }] } }))));
+    const { fetchEndpoints } = await import('./openrouter-client.js');
+    const first = await fetchEndpoints('m', 'k');
+    first.push({ tag: 'injected' } as any);
+    const second = await fetchEndpoints('m', 'k');
+    expect(second.map(e => e.tag)).toEqual(['x']);
+    vi.unstubAllGlobals();
+  });
+
   it('handles pre-aborted signal', async () => {
     const mockFetch = vi.fn(); // should not be called
     globalThis.fetch = mockFetch as any;
