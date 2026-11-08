@@ -73,6 +73,53 @@ export function extractUsage(body: unknown): {
   };
 }
 
+type Usage = ReturnType<typeof extractUsage>;
+
+// Sadece tanımlı alanlar üzerine yazılır: message_delta usage'ında input_tokens yok,
+// boş değerle önceki gerçek değeri silmemeli.
+function mergeUsage(into: Usage, extra: Usage) {
+  for (const [key, value] of Object.entries(extra)) {
+    if (value !== undefined) (into as Record<string, unknown>)[key] = value;
+  }
+}
+
+// SSE akışını olduğu gibi geçirir, sadece data: satırlarını okuyup usage toplar.
+// Chunk'lar satır ortasında bölünebilir; tail ile tamamlanır.
+export function tapSseUsage(
+  stream: ReadableStream<Uint8Array>,
+  onUsage: (u: Usage) => void,
+): ReadableStream<Uint8Array> {
+  const decoder = new TextDecoder();
+  let tail = '';
+
+  const consume = (text: string, final: boolean) => {
+    const lines = (tail + text).split('\n');
+    tail = final ? '' : lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue;
+      try {
+        const evt = JSON.parse(line.slice(5).trim());
+        // message_start usage'ı message içinde, message_delta kökte taşır.
+        onUsage({ ...mergeSafely(evt?.message), ...mergeSafely(evt) });
+      } catch { /* kısmi veya JSON olmayan satır — pass-through etkilenmez */ }
+    }
+  };
+
+  return stream.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      controller.enqueue(chunk);
+      consume(decoder.decode(chunk, { stream: true }), false);
+    },
+    flush() { consume(decoder.decode(), true); },
+  }));
+}
+
+function mergeSafely(body: unknown): Usage {
+  const out: Usage = {};
+  mergeUsage(out, extractUsage(body));
+  return out;
+}
+
 export async function register(app: FastifyInstance) {
   // GET /v1/models — Claude Desktop gateway model discovery
   app.get('/v1/models', async () => {
@@ -136,11 +183,23 @@ export async function register(app: FastifyInstance) {
         }
       }
 
-      const duration = `${Date.now() - started}ms`;
       const ctxTokens = estimateContextTokens(parsed);
-      logRequest({ model: parsed.model, status: result.status, duration, ctxTokens, ...extractUsage(result.body) });
+      const entry = logRequest({
+        model: parsed.model,
+        status: result.status,
+        duration: `${Date.now() - started}ms`,
+        ctxTokens,
+        ...extractUsage(result.body),
+      });
 
-      return reply.send(result.body);
+      let body = result.body;
+      // Streaming'de usage message_start/message_delta olaylarında gelir; akış bitince
+      // aynı log satırı doldurulur, böylece iptal edilen istek de kaybolmaz.
+      if (body instanceof ReadableStream) {
+        body = tapSseUsage(body, u => mergeUsage(entry, u));
+      }
+
+      return reply.send(body);
     } catch (err) {
       const e = err as { code?: string };
       if (e.code === 'upstream_timeout') return reply.code(504).send({ error: { type: 'upstream_timeout', message: 'Upstream request timed out' } });

@@ -130,6 +130,8 @@ export async function register(app: FastifyInstance) {
   });
 }
 
-export function logRequest(entry: Omit<RequestLogEntry, 'time'>) {
-  requestLog.push({ ...entry, time: new Date().toLocaleTimeString() });
+export function logRequest(entry: Omit<RequestLogEntry, 'time'>): RequestLogEntry {
+  const logged = { ...entry, time: new Date().toLocaleTimeString() };
+  requestLog.push(logged);
+  return logged;
 }

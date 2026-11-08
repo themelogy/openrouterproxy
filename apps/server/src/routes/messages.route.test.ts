@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { register, withPromptCache, pickSessionId, extractUsage } from './messages.route.js';
+import { register, withPromptCache, pickSessionId, extractUsage, tapSseUsage } from './messages.route.js';
 
 let app: FastifyInstance;
 
@@ -92,6 +92,26 @@ describe('extractUsage', () => {
   it('returns an empty usage object for a stream or a malformed body', () => {
     expect(extractUsage(new ReadableStream())).toEqual({});
     expect(extractUsage(undefined)).toEqual({});
+  });
+});
+
+describe('tapSseUsage', () => {
+  it('passes bytes through untouched and merges usage from events split across chunks', async () => {
+    const events = [
+      'event: message_start\ndata: {"type":"message_start","message":{"usage":{"input_tokens":120,"cache_read_input_tokens":1000}}}\n\n',
+      'event: message_delta\ndata: {"type":"message_delta","usage":{"output_tokens":30,"cost":0.0042}}\n\n',
+    ].join('');
+    // Satır ortasında bölünmüş chunk'lar; tail tamponu bunu toparlamalı
+    const chunks = [events.slice(0, 40), events.slice(40, 95), events.slice(95)];
+    const source = new ReadableStream<Uint8Array>({
+      start(c) { for (const s of chunks) c.enqueue(new TextEncoder().encode(s)); c.close(); },
+    });
+
+    const usage: Record<string, number | undefined> = {};
+    const text = await new Response(tapSseUsage(source, u => Object.assign(usage, u))).text();
+
+    expect(text).toBe(events);
+    expect(usage).toEqual({ inputTokens: 120, outputTokens: 30, cachedInputTokens: 1000, cacheWriteTokens: undefined, cost: 0.0042 });
   });
 });
 
