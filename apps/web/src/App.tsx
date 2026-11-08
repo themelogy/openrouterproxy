@@ -11,6 +11,7 @@ type Config = {
   server: { host: string; port: number; timeoutMs?: number };
   openrouter: { baseUrl: string; apiKey: string };
   models: { opus: string | { id: string }; sonnet: string | { id: string }; haiku: string | { id: string } };
+  enablePromptCaching?: boolean;
 };
 
 type Status = { running: boolean; upstreamOk: boolean; lastCheck?: string };

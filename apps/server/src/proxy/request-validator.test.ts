@@ -3,6 +3,7 @@ import { stripAnthropicFields } from './request-validator.js';
 
 describe('stripAnthropicFields', () => {
   const body = {
+    stream: false,
     model: 'claude-sonnet',
     messages: [{ role: 'user', content: 'hi' }],
     tools: [{ name: 'read' }],

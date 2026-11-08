@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import styles from '../styles/app.module.css';
 
-type Config = { server: { host: string; port: number; timeoutMs?: number } };
+type Config = { server: { host: string; port: number; timeoutMs?: number }; enablePromptCaching?: boolean };
 
 export default function ProxySettings({ config, onSave }: {
   config: Config;
   onSave: (partial: Partial<Config>) => void;
 }) {
   const [server, setServer] = useState(config.server);
+  const [caching, setCaching] = useState(config.enablePromptCaching ?? false);
 
   return (
     <section>
@@ -26,7 +27,13 @@ export default function ProxySettings({ config, onSave }: {
         <label>Request Timeout (ms)</label>
         <input type="text" value={server.timeoutMs} onChange={e => setServer({ ...server, timeoutMs: parseInt(e.target.value) || 3000000 })} />
       </div>
-      <button onClick={() => onSave({ server })} className={styles.primary}>Save Proxy Settings</button>
+      <div className={styles.field}>
+        <label>
+          <input type="checkbox" checked={caching} onChange={e => setCaching(e.target.checked)} />
+          {' '}Prompt Caching (Claude modelleri)
+        </label>
+      </div>
+      <button onClick={() => onSave({ server, enablePromptCaching: caching })} className={styles.primary}>Save Proxy Settings</button>
     </section>
   );
 }

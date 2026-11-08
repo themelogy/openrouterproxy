@@ -27,6 +27,23 @@ function slotEntry(id: string, tier: string, model: unknown) {
   };
 }
 
+const isClaudeModel = (id: string) => id.startsWith('anthropic/') || id.toLowerCase().includes('claude');
+
+function hasExplicitBreakpoint(body: Record<string, unknown>): boolean {
+  if (body.cache_control) return true;
+  const blocks = (v: unknown) => Array.isArray(v) ? v : [];
+  if (blocks(body.system).some((b: any) => b?.cache_control)) return true;
+  return blocks(body.messages).some((m: any) =>
+    Array.isArray(m?.content) && m.content.some((b: any) => b?.cache_control));
+}
+
+export function withPromptCache(
+  body: Record<string, unknown>, enabled: boolean, resolvedModel: string,
+): Record<string, unknown> {
+  if (!enabled || !isClaudeModel(resolvedModel) || hasExplicitBreakpoint(body)) return body;
+  return { ...body, cache_control: { type: 'ephemeral' } };
+}
+
 export async function register(app: FastifyInstance) {
   // GET /v1/models — Claude Desktop gateway model discovery
   app.get('/v1/models', async () => {
@@ -66,11 +83,14 @@ export async function register(app: FastifyInstance) {
       upstreamBody.provider = toWireProvider(modelResult.providerOptions);
     }
 
+    // let, not const: session_id is assigned to finalBody below.
+    let finalBody = withPromptCache(upstreamBody, config.enablePromptCaching === true, modelResult.resolved);
+
     const abortController = new AbortController();
     req.raw.on('aborted', () => abortController.abort());
 
     try {
-      const result = await fetchMessage(config.openrouter, modelResult.resolved, upstreamBody, abortController.signal);
+      const result = await fetchMessage(config.openrouter, modelResult.resolved, finalBody, abortController.signal);
       reply.status(result.status);
 
       for (const [key, value] of Object.entries(result.headers)) {
