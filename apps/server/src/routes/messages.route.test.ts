@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { register, withPromptCache } from './messages.route.js';
+import { register, withPromptCache, pickSessionId } from './messages.route.js';
 
 let app: FastifyInstance;
 
@@ -72,5 +72,24 @@ describe('withPromptCache', () => {
       'claude-x',
     );
     expect(inMessage).not.toHaveProperty('cache_control');
+  });
+});
+
+describe('pickSessionId', () => {
+  it('prefers a body session_id over headers', () => {
+    expect(pickSessionId({ session_id: 'body-id' }, { 'x-claude-code-session-id': 'hdr' })).toBe('body-id');
+  });
+
+  it('falls back to x-claude-code-session-id then x-session-id', () => {
+    expect(pickSessionId({}, { 'x-claude-code-session-id': 'a' })).toBe('a');
+    expect(pickSessionId({}, { 'x-session-id': 'b' })).toBe('b');
+  });
+
+  it('rejects empty, non-string, and over-256-character values without inventing one', () => {
+    expect(pickSessionId({}, {})).toBeUndefined();
+    expect(pickSessionId({}, { 'x-session-id': '' })).toBeUndefined();
+    expect(pickSessionId({}, { 'x-session-id': ['a', 'b'] })).toBeUndefined();
+    expect(pickSessionId({}, { 'x-session-id': 'x'.repeat(257) })).toBeUndefined();
+    expect(pickSessionId({}, { 'x-session-id': 'x'.repeat(256) })).toBe('x'.repeat(256));
   });
 });

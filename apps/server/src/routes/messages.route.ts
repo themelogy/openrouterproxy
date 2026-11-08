@@ -44,6 +44,19 @@ export function withPromptCache(
   return { ...body, cache_control: { type: 'ephemeral' } };
 }
 
+function validSessionId(v: unknown): v is string {
+  return typeof v === 'string' && v.length > 0 && v.length <= 256;
+}
+
+// session_id yalnızca kaynağı varsa geçer; uydurulmuş bir ID sticky routing'i bozar.
+export function pickSessionId(
+  body: Record<string, unknown>, headers: Record<string, unknown>,
+): string | undefined {
+  if (validSessionId(body.session_id)) return body.session_id;
+  const h = headers['x-claude-code-session-id'] ?? headers['x-session-id'];
+  return validSessionId(h) ? h : undefined;
+}
+
 export async function register(app: FastifyInstance) {
   // GET /v1/models — Claude Desktop gateway model discovery
   app.get('/v1/models', async () => {
@@ -85,6 +98,9 @@ export async function register(app: FastifyInstance) {
 
     // let, not const: session_id is assigned to finalBody below.
     let finalBody = withPromptCache(upstreamBody, config.enablePromptCaching === true, modelResult.resolved);
+
+    const sessionId = pickSessionId(upstreamBody, req.headers);
+    if (sessionId && !validSessionId(upstreamBody.session_id)) finalBody.session_id = sessionId;
 
     const abortController = new AbortController();
     req.raw.on('aborted', () => abortController.abort());
