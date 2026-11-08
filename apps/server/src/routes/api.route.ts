@@ -9,6 +9,7 @@ type RequestLogEntry = {
   time: string; model: string; status: number; duration?: string; ctxTokens?: number;
   inputTokens?: number; outputTokens?: number; cachedInputTokens?: number; cacheWriteTokens?: number; cost?: number;
 };
+const REQUEST_LOG_LIMIT = 200;
 const requestLog: RequestLogEntry[] = [];
 
 export async function register(app: FastifyInstance) {
@@ -133,5 +134,6 @@ export async function register(app: FastifyInstance) {
 export function logRequest(entry: Omit<RequestLogEntry, 'time'>): RequestLogEntry {
   const logged = { ...entry, time: new Date().toLocaleTimeString() };
   requestLog.push(logged);
+  if (requestLog.length > REQUEST_LOG_LIMIT) requestLog.splice(0, requestLog.length - REQUEST_LOG_LIMIT);
   return logged;
 }

@@ -23,13 +23,13 @@ describe('auth guard', () => {
     await expect(authGuard(req)).rejects.toThrow('Forbidden: management API only accessible on localhost');
   });
 
-  it('allows loopback IPv4', async () => {
-    const req = mockRequest('127.0.0.1');
+  it('allows loopback IPv4 with a valid token', async () => {
+    const req = mockRequest('127.0.0.1', { authorization: 'Bearer test-token' });
     await expect(authGuard(req)).resolves.toBeUndefined();
   });
 
-  it('allows loopback IPv6', async () => {
-    const req = mockRequest('::1');
+  it('allows loopback IPv6 with a valid token', async () => {
+    const req = mockRequest('::1', { authorization: 'Bearer test-token' });
     await expect(authGuard(req)).resolves.toBeUndefined();
   });
 
@@ -38,13 +38,13 @@ describe('auth guard', () => {
     await expect(authGuard(req)).rejects.toThrow('Forbidden: management API only accessible on localhost');
   });
 
-  it('rejects invalid local auth token', async () => {
-    const req = mockRequest('127.0.0.1', { authorization: 'Bearer wrong-token' });
+  it('rejects a missing token when one is configured', async () => {
+    const req = mockRequest('127.0.0.1');
     await expect(authGuard(req)).rejects.toThrow('Unauthorized: invalid local auth token');
   });
 
-  it('allows valid local auth token', async () => {
-    const req = mockRequest('127.0.0.1', { authorization: 'Bearer test-token' });
-    await expect(authGuard(req)).resolves.toBeUndefined();
+  it('rejects invalid local auth token', async () => {
+    const req = mockRequest('127.0.0.1', { authorization: 'Bearer wrong-token' });
+    await expect(authGuard(req)).rejects.toThrow('Unauthorized: invalid local auth token');
   });
 });

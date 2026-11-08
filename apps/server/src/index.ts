@@ -7,7 +7,7 @@ import { register as messagesRoute } from './routes/messages.route.js';
 import { register as healthRoute } from './routes/health.route.js';
 import { register as tokenCountRoute } from './routes/token-count.route.js';
 import { registerGuard } from './routes/auth.guard.js';
-import { attachCorrelationId, redactSensitive } from './logging/logger.js';
+import { attachCorrelationId } from './logging/logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // dev'de apps/server/src, üretimde kök dist — iki düzeni de dene

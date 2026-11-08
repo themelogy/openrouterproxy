@@ -3,6 +3,7 @@ import { MessageRequestSchema, ZodMessageRequest, stripAnthropicFields } from '.
 import { loadConfig } from '../config/store.js';
 import { resolveModelStrict, toWireProvider } from '../proxy/model-resolver.js';
 import { fetchMessage } from '../proxy/openrouter-client.js';
+import { mapOpenRouterError, normalizeOpenRouterError } from '../proxy/error-mapper.js';
 import { logRequest } from './api.route.js';
 import { estimateContextTokens } from './token-count.route.js';
 
@@ -173,7 +174,7 @@ export async function register(app: FastifyInstance) {
     reply.raw.on('close', onClose);
 
     try {
-      const result = await fetchMessage(config.openrouter, finalBody, abortController.signal);
+      const result = await fetchMessage(config.openrouter, finalBody, abortController.signal, config.server.timeoutMs);
       reply.status(result.status);
 
       for (const [key, value] of Object.entries(result.headers)) {
@@ -197,6 +198,11 @@ export async function register(app: FastifyInstance) {
       // aynı log satırı doldurulur, böylece iptal edilen istek de kaybolmaz.
       if (body instanceof ReadableStream) {
         body = tapSseUsage(body, u => mergeUsage(entry, u));
+      }
+
+      // Upstream hata gövdesi Anthropic şemasında değilse dönüştür; uyumlu gövde aynen geçer.
+      if (result.status >= 400 && !(body instanceof ReadableStream)) {
+        body = normalizeOpenRouterError(body) ?? mapOpenRouterError(result.status, body);
       }
 
       return reply.send(body);
