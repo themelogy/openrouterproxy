@@ -59,12 +59,7 @@ export async function register(app: FastifyInstance) {
       return reply.code(400).send({ error: { type: 'invalid_model', message: modelResult.error } });
     }
 
-    // Build upstream body — strip Anthropic fields, pass tools through as-is (Anthropic format)
-    const stripped = stripAnthropicFields(parsed);
-    if (parsed.tools && parsed.tools.length > 0) {
-      (stripped as any).tools = parsed.tools;
-    }
-    const upstreamBody: Record<string, unknown> = stripped;
+    const upstreamBody: Record<string, unknown> = stripAnthropicFields(parsed, config.stripFields);
     // Resolve alias model to actual OpenRouter model ID
     upstreamBody.model = modelResult.resolved;
     if (modelResult.providerOptions) {

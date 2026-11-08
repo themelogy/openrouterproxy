@@ -16,12 +16,10 @@ export const MessageRequestSchema = z.object({
 
 export type ZodMessageRequest = z.infer<typeof MessageRequestSchema>;
 
-const STRIP_KEYS = new Set(['metadata', 'thinking', 'context_management', 'output_config']);
-
-export function stripAnthropicFields(body: ZodMessageRequest): Record<string, unknown> {
+export function stripAnthropicFields(body: ZodMessageRequest, stripFields: string[] = []): Record<string, unknown> {
+  if (stripFields.length === 0) return { ...body };
+  const drop = new Set(stripFields);
   const stripped: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(body)) {
-    if (!STRIP_KEYS.has(k)) stripped[k] = v;
-  }
+  for (const [k, v] of Object.entries(body)) if (!drop.has(k)) stripped[k] = v;
   return stripped;
 }

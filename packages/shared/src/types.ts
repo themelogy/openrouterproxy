@@ -57,8 +57,8 @@ export interface OpenRouterConfig {
 
 /** OpenRouter provider routing options — see https://openrouter.ai/docs/provider-routing */
 export interface ProviderOptions {
-  /** Sort providers by price or throughput */
-  sort?: 'price' | 'throughput';
+  /** Sort providers by price, throughput or latency */
+  sort?: 'price' | 'throughput' | 'latency';
   /** Only use these providers (list of provider slugs) */
   only?: string[];
   /** Ignore these providers (list of provider slugs) */
@@ -87,17 +87,23 @@ export interface AppConfig {
   openrouter: OpenRouterConfig;
   models: ModelConfig;
   security?: SecurityConfig;
+  /** Top-level cache_control ekle (yalnızca Anthropic Claude modelleri, explicit breakpoint yoksa) */
+  enablePromptCaching?: boolean;
+  /** upstream'e gönderilmeyecek alanlar; boş = tam pass-through */
+  stripFields?: string[];
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
   server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
   openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '' },
   models: { opus: '', sonnet: '', haiku: '' },
+  enablePromptCaching: false,
+  stripFields: [],
 };
 
 // Zod schemas
 export const ProviderOptionsSchema = z.object({
-  sort: z.enum(['price', 'throughput']).optional(),
+  sort: z.enum(['price', 'throughput', 'latency']).optional(),
   only: z.array(z.string()).optional(),
   ignore: z.array(z.string()).optional(),
   allowFallbacks: z.boolean().optional(),
@@ -135,6 +141,8 @@ export const AppConfigSchema = z.object({
   openrouter: OpenRouterConfigSchema,
   models: ModelConfigSchema,
   security: SecurityConfigSchema.optional(),
+  enablePromptCaching: z.boolean().default(false),
+  stripFields: z.array(z.string()).default([]),
 }).passthrough();
 
 export type ZodAppConfig = z.infer<typeof AppConfigSchema>;
