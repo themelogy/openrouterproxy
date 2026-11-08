@@ -5,7 +5,11 @@ import { syncModelOverrides } from '../config/claude-settings.js';
 import { getDesktopStatus, enableDesktop, disableDesktop, createDesktopLibrary } from '../config/claude-desktop.js';
 import { fetchModels, fetchEndpoints } from '../proxy/openrouter-client.js';
 
-const requestLog: Array<{ time: string; model: string; status: number; duration?: string; ctxTokens?: number }> = [];
+type RequestLogEntry = {
+  time: string; model: string; status: number; duration?: string; ctxTokens?: number;
+  inputTokens?: number; outputTokens?: number; cachedInputTokens?: number; cacheWriteTokens?: number; cost?: number;
+};
+const requestLog: RequestLogEntry[] = [];
 
 export async function register(app: FastifyInstance) {
   // GET /api/status — proxy health
@@ -126,6 +130,6 @@ export async function register(app: FastifyInstance) {
   });
 }
 
-export function logRequest(entry: { model: string; status: number; duration?: string; ctxTokens?: number }) {
+export function logRequest(entry: Omit<RequestLogEntry, 'time'>) {
   requestLog.push({ ...entry, time: new Date().toLocaleTimeString() });
 }

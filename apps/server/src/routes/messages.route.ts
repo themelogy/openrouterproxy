@@ -57,6 +57,22 @@ export function pickSessionId(
   return validSessionId(h) ? h : undefined;
 }
 
+export function extractUsage(body: unknown): {
+  inputTokens?: number; outputTokens?: number; cachedInputTokens?: number; cacheWriteTokens?: number; cost?: number;
+} {
+  if (!body || typeof body !== 'object' || body instanceof ReadableStream) return {};
+  const u = (body as { usage?: Record<string, unknown> }).usage;
+  if (!u) return {};
+  const num = (v: unknown) => typeof v === 'number' ? v : undefined;
+  return {
+    inputTokens: num(u.input_tokens),
+    outputTokens: num(u.output_tokens),
+    cachedInputTokens: num(u.cache_read_input_tokens),
+    cacheWriteTokens: num(u.cache_creation_input_tokens),
+    cost: num(u.cost),
+  };
+}
+
 export async function register(app: FastifyInstance) {
   // GET /v1/models — Claude Desktop gateway model discovery
   app.get('/v1/models', async () => {
@@ -122,7 +138,7 @@ export async function register(app: FastifyInstance) {
 
       const duration = `${Date.now() - started}ms`;
       const ctxTokens = estimateContextTokens(parsed);
-      logRequest({ model: parsed.model, status: result.status, duration, ctxTokens });
+      logRequest({ model: parsed.model, status: result.status, duration, ctxTokens, ...extractUsage(result.body) });
 
       return reply.send(result.body);
     } catch (err) {

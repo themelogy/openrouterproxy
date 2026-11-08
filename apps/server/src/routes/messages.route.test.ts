@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { register, withPromptCache, pickSessionId } from './messages.route.js';
+import { register, withPromptCache, pickSessionId, extractUsage } from './messages.route.js';
 
 let app: FastifyInstance;
 
@@ -72,6 +72,26 @@ describe('withPromptCache', () => {
       'claude-x',
     );
     expect(inMessage).not.toHaveProperty('cache_control');
+  });
+});
+
+describe('extractUsage', () => {
+  it('extracts Anthropic usage fields and OpenRouter cost', () => {
+    const usage = extractUsage({
+      usage: {
+        input_tokens: 120,
+        output_tokens: 30,
+        cache_read_input_tokens: 1000,
+        cache_creation_input_tokens: 200,
+        cost: 0.0042,
+      },
+    });
+    expect(usage).toEqual({ inputTokens: 120, outputTokens: 30, cachedInputTokens: 1000, cacheWriteTokens: 200, cost: 0.0042 });
+  });
+
+  it('returns an empty usage object for a stream or a malformed body', () => {
+    expect(extractUsage(new ReadableStream())).toEqual({});
+    expect(extractUsage(undefined)).toEqual({});
   });
 });
 
