@@ -103,10 +103,14 @@ export async function register(app: FastifyInstance) {
     if (sessionId && !validSessionId(upstreamBody.session_id)) finalBody.session_id = sessionId;
 
     const abortController = new AbortController();
-    req.raw.on('aborted', () => abortController.abort());
+    const onClientAbort = () => abortController.abort();
+    req.raw.on('aborted', onClientAbort);
+    // SSE akarken istemci soketi kapanabilir; normal bitiş writableEnded ile ayrılır.
+    const onClose = () => { if (!reply.raw.writableEnded) abortController.abort(); };
+    reply.raw.on('close', onClose);
 
     try {
-      const result = await fetchMessage(config.openrouter, modelResult.resolved, finalBody, abortController.signal);
+      const result = await fetchMessage(config.openrouter, finalBody, abortController.signal);
       reply.status(result.status);
 
       for (const [key, value] of Object.entries(result.headers)) {
@@ -122,9 +126,13 @@ export async function register(app: FastifyInstance) {
 
       return reply.send(result.body);
     } catch (err) {
-      const error = err as Error;
-      if (error.name === 'AbortError') return reply.code(499).send({ error: { type: 'client_closed', message: 'Request was cancelled' } });
+      const e = err as { code?: string };
+      if (e.code === 'upstream_timeout') return reply.code(504).send({ error: { type: 'upstream_timeout', message: 'Upstream request timed out' } });
+      if (e.code === 'client_closed') return reply.code(499).send({ error: { type: 'client_closed', message: 'Request was cancelled' } });
       return reply.code(502).send({ error: { type: 'upstream_error', message: 'Upstream request failed' } });
+    } finally {
+      req.raw.off('aborted', onClientAbort);
+      reply.raw.off('close', onClose);
     }
   });
 }

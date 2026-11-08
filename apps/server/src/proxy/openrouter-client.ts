@@ -1,31 +1,36 @@
 import { createHash } from 'node:crypto';
 import type { OpenRouterConfig } from '@shared/types';
 
+export class UpstreamAbortError extends Error {
+  constructor(public readonly code: 'upstream_timeout' | 'client_closed') {
+    super(code);
+    this.name = 'AbortError';
+  }
+}
+
 export async function fetchMessage(
   config: OpenRouterConfig,
-  model: string,
   body: unknown,
   signal?: AbortSignal,
   timeoutMs = 30_000,
-): Promise<{ status: number; headers: Record<string, string>; body: ReadableStream | object }> {
+): Promise<{ status: number; headers: Record<string, string>; body: ReadableStream | object | string }> {
+  if (signal?.aborted) throw new UpstreamAbortError('client_closed');
+
   const url = `${config.baseUrl}/messages`;
+  const streaming = (body as { stream?: boolean })?.stream === true;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${config.apiKey}`,
-    'Accept': 'text/event-stream',
+    'Accept': streaming ? 'text/event-stream' : 'application/json',
   };
 
-  // Pre-aborted signal check
-  if (signal?.aborted) throw new Error('timeout');
-
   const controller = new AbortController();
-
-  // Timeout triggers abort
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  // Client disconnect triggers abort
-  signal?.addEventListener('abort', () => controller.abort(), { once: true });
+  // Timeout ile istemci iptali aynı sinyale düşüyor; sebebi ayrı tutulur.
+  let reason: 'upstream_timeout' | 'client_closed' = 'client_closed';
+  const timeoutId = setTimeout(() => { reason = 'upstream_timeout'; controller.abort(); }, timeoutMs);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener('abort', onAbort, { once: true });
 
   try {
     const response = await fetch(url, {
@@ -40,18 +45,28 @@ export async function fetchMessage(
     const respHeaders: Record<string, string> = {};
     response.headers.forEach((val, key) => {
       if (key === 'content-encoding' || key === 'content-length') return;
+      if (key === 'transfer-encoding' || key === 'connection') return;
       respHeaders[key] = val;
     });
 
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('text/event-stream')) {
+      clearTimeout(timeoutId); // SSE akışına toplam süre sınırı konmaz
       return { status: response.status, headers: respHeaders, body: response.body as ReadableStream };
     }
 
-    const json = await response.json();
-    return { status: response.status, headers: respHeaders, body: json };
+    const text = await response.text();
+    try {
+      return { status: response.status, headers: respHeaders, body: text ? JSON.parse(text) : {} };
+    } catch {
+      return { status: response.status, headers: respHeaders, body: text };
+    }
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') throw new UpstreamAbortError(reason);
+    throw err;
   } finally {
     clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', onAbort);
   }
 }
 

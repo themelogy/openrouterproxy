@@ -44,71 +44,96 @@ describe('openrouter client', () => {
     expect(result[1].throughputTokPerSec).toBeNull();
   });
 
-  it('rejects with timeout_error when request exceeds timeout', async () => {
-    const mockFetch = vi.fn((url: string, opts: { signal?: AbortSignal }) => {
-      return new Promise((_, reject) => {
-        opts.signal?.addEventListener('abort', () => reject(new Error('timeout')), { once: true });
-      });
-    });
-    globalThis.fetch = mockFetch as any;
-
+  it('classifies a timeout as upstream_timeout', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn((_url: string, opts: any) => new Promise((_res, rej) => {
+      opts.signal.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError')));
+    })));
     const { fetchMessage } = await import('./openrouter-client.js');
-    const config = { baseUrl: 'http://example.com', apiKey: 'test' };
-    const body = { model: 'test', messages: [{ role: 'user', content: 'hi' }], max_tokens: 100 };
-
-    await expect(fetchMessage(config, 'test', body, undefined, 10)).rejects.toThrow('timeout');
+    await expect(fetchMessage({ baseUrl: 'http://x', apiKey: 'k' }, {}, undefined, 5))
+      .rejects.toMatchObject({ name: 'AbortError', code: 'upstream_timeout' });
+    vi.unstubAllGlobals();
   });
 
   it('forwards upstream response when within timeout', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      status: 200,
-      headers: new Map([['content-type', 'application/json']]),
-      json: async () => ({ id: 'msg_1', content: [], type: 'message' }),
-    });
-    globalThis.fetch = mockFetch as any;
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify({ id: 'msg_1', content: [], type: 'message' }),
+      { headers: { 'content-type': 'application/json' } },
+    )));
 
     const { fetchMessage } = await import('./openrouter-client.js');
     const config = { baseUrl: 'http://example.com', apiKey: 'test' };
     const body = { model: 'test', messages: [{ role: 'user', content: 'hi' }], max_tokens: 100 };
 
-    const result = await fetchMessage(config, 'test', body);
+    const result = await fetchMessage(config, body);
     expect(result.status).toBe(200);
+    expect(result.body).toEqual({ id: 'msg_1', content: [], type: 'message' });
+    vi.unstubAllGlobals();
   });
 
   it('drops content-encoding/content-length from upstream headers', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      status: 200,
-      headers: new Map([['content-type', 'application/json'], ['content-encoding', 'gzip'], ['content-length', '881']]),
-      json: async () => ({ id: 'msg_1' }),
-    });
-    globalThis.fetch = mockFetch as any;
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ id: 'msg_1' }), {
+      headers: {
+        'content-type': 'application/json',
+        'content-encoding': 'gzip',
+        'content-length': '881',
+      },
+    })));
 
     const { fetchMessage } = await import('./openrouter-client.js');
-    const result = await fetchMessage({ baseUrl: 'http://example.com', apiKey: 'test' }, 'test', {});
+    const result = await fetchMessage({ baseUrl: 'http://example.com', apiKey: 'test' }, {});
 
     expect(result.headers['content-type']).toBe('application/json');
     expect(result.headers['content-encoding']).toBeUndefined();
     expect(result.headers['content-length']).toBeUndefined();
+    vi.unstubAllGlobals();
   });
 
-  it('rejects when client abort signal fires', async () => {
-    const controller = new AbortController();
-
-    const mockFetch = vi.fn((url: string, opts: { signal?: AbortSignal }) => {
-      return new Promise((_, reject) => {
-        opts.signal?.addEventListener('abort', () => reject(new Error('timeout')), { once: true });
-      });
-    });
-    globalThis.fetch = mockFetch as any;
-
+  it('sends Accept: application/json when the body is not streaming', async () => {
+    vi.resetModules();
+    const mockFetch = vi.fn(async () => new Response(JSON.stringify({ ok: true })));
+    vi.stubGlobal('fetch', mockFetch);
     const { fetchMessage } = await import('./openrouter-client.js');
-    const config = { baseUrl: 'http://example.com', apiKey: 'test' };
-    const body = { model: 'test', messages: [{ role: 'user', content: 'hi' }], max_tokens: 100 };
+    await fetchMessage({ baseUrl: 'http://x', apiKey: 'k' }, { stream: false });
+    const init = (mockFetch.mock.calls[0] as any[])[1];
+    expect(init.headers.Accept).toBe('application/json');
+    vi.unstubAllGlobals();
+  });
 
-    // Abort after 5ms (shorter than default 30s timeout)
-    setTimeout(() => controller.abort(), 5);
+  it('sends Accept: text/event-stream when the body is streaming', async () => {
+    vi.resetModules();
+    const mockFetch = vi.fn(async () => new Response('data: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }));
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchMessage } = await import('./openrouter-client.js');
+    await fetchMessage({ baseUrl: 'http://x', apiKey: 'k' }, { stream: true });
+    const init = (mockFetch.mock.calls[0] as any[])[1];
+    expect(init.headers.Accept).toBe('text/event-stream');
+    vi.unstubAllGlobals();
+  });
 
-    await expect(fetchMessage(config, 'test', body, controller.signal)).rejects.toThrow('timeout');
+  it('classifies a client abort as client_closed', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn((_url: string, opts: any) => new Promise((_res, rej) => {
+      opts.signal.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError')));
+    })));
+    const { fetchMessage } = await import('./openrouter-client.js');
+    const ac = new AbortController();
+    const p = fetchMessage({ baseUrl: 'http://x', apiKey: 'k' }, {}, ac.signal, 60_000);
+    ac.abort();
+    await expect(p).rejects.toMatchObject({ name: 'AbortError', code: 'client_closed' });
+    vi.unstubAllGlobals();
+  });
+
+  it('preserves the real status when an error body is not JSON', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>bad gateway</html>', { status: 429 })));
+    const { fetchMessage } = await import('./openrouter-client.js');
+    const out = await fetchMessage({ baseUrl: 'http://x', apiKey: 'k' }, {});
+    expect(out.status).toBe(429);
+    expect(out.body).toBe('<html>bad gateway</html>');
+    vi.unstubAllGlobals();
   });
 
   it('collapses concurrent fetchModels calls into one upstream request', async () => {
@@ -226,8 +251,9 @@ describe('openrouter client', () => {
   });
 
   it('handles pre-aborted signal', async () => {
+    vi.resetModules();
     const mockFetch = vi.fn(); // should not be called
-    globalThis.fetch = mockFetch as any;
+    vi.stubGlobal('fetch', mockFetch);
 
     const { fetchMessage } = await import('./openrouter-client.js');
     const config = { baseUrl: 'http://example.com', apiKey: 'test' };
@@ -235,7 +261,8 @@ describe('openrouter client', () => {
     const controller = new AbortController();
     controller.abort();
 
-    await expect(fetchMessage(config, 'test', body, controller.signal)).rejects.toThrow('timeout');
+    await expect(fetchMessage(config, body, controller.signal)).rejects.toMatchObject({ code: 'client_closed' });
     expect(mockFetch).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });
