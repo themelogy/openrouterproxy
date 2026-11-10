@@ -18,6 +18,9 @@ export async function createApp() {
   const app = Fastify({
     logger: { level: 'info' },
     disableRequestLogging: true,
+    // Claude Code her turda tüm konuşmayı gönderir; 1 MiB varsayılanı uzun
+    // oturumlarda 413 + soket kapatma (istemcide ECONNRESET) üretir.
+    bodyLimit: 64 * 1024 * 1024,
   });
 
   // CORS — only allow same origin (localhost)
