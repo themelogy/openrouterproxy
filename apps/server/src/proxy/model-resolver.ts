@@ -2,7 +2,7 @@ import type { ModelConfig, ProviderOptions } from '@shared/types';
 
 const ROLES = ['fable', 'opus', 'sonnet', 'haiku'] as const;
 
-// "sonnet", "opus[1m]", "claude-sonnet-4-6", "claude-fable-5-1", "claude-haiku" → rol adı.
+// "sonnet", "opus[1m]", "claude-sonnet-5-5", "claude-fable-5-1", "claude-haiku-5-5" → rol adı.
 // Sürüm eki önemsiz; tanınmayan ID (ör. openrouter/claude-3-opus) olduğu gibi geçer.
 function roleOf(model: string): keyof ModelConfig | undefined {
   const m = model.toLowerCase().replace(/\[1m\]$/, '');

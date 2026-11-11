@@ -12,9 +12,9 @@ describe('model resolver', () => {
   });
 
   it('resolves canonical and Desktop slot IDs by role prefix, version ignored', () => {
-    expect(resolveModelStrict('claude-opus-4-6', config)).toEqual({ resolved: 'openrouter/claude-3-opus' });
-    expect(resolveModelStrict('claude-sonnet-4-6', config)).toEqual({ resolved: 'openrouter/claude-3-sonnet' });
-    expect(resolveModelStrict('claude-haiku-4-5', config)).toEqual({ resolved: 'openrouter/claude-3-haiku' });
+    expect(resolveModelStrict('claude-opus-5-5', config)).toEqual({ resolved: 'openrouter/claude-3-opus' });
+    expect(resolveModelStrict('claude-sonnet-5-5', config)).toEqual({ resolved: 'openrouter/claude-3-sonnet' });
+    expect(resolveModelStrict('claude-haiku-5-5', config)).toEqual({ resolved: 'openrouter/claude-3-haiku' });
     expect(resolveModelStrict('claude-opus', config)).toEqual({ resolved: 'openrouter/claude-3-opus' });
     for (const id of ['fable', 'claude-fable', 'claude-fable-5', 'claude-fable-5-1']) {
       expect(resolveModelStrict(id, config)).toEqual({ resolved: 'openrouter/fable' });
@@ -33,7 +33,7 @@ describe('model resolver', () => {
 
   it('returns error when alias configured but empty', () => {
     const emptyConfig: ModelConfig = { opus: '', sonnet: '', haiku: '', fable: '' };
-    const result = resolveModelStrict('claude-opus-4-6', emptyConfig);
+    const result = resolveModelStrict('claude-opus-5-5', emptyConfig);
     expect(result).toHaveProperty('error');
   });
 

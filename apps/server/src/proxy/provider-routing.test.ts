@@ -95,7 +95,7 @@ describe('provider routing', () => {
       haiku: '',
       fable: '',
     };
-    const result = resolveModelStrict('claude-sonnet-3.5', config);
+    const result = resolveModelStrict('claude-sonnet-5-5', config);
     expect('error' in result).toBe(false);
     if (!('error' in result)) {
       expect(result.providerOptions).toEqual({ sort: 'throughput' as const });

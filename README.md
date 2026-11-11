@@ -41,8 +41,8 @@ The token only has to be non-empty: the proxy always uses the OpenRouter key fro
 ### How model selection reaches OpenRouter
 
 - The `ANTHROPIC_DEFAULT_<ROLE>_MODEL` vars fill Claude Code's `/model` picker. Their value is shown verbatim in the picker, so the row reads `deepseek/deepseek-v4.1-flash-1017`, not a Claude name.
-- Saving models in the UI also writes `modelOverrides` into `~/.claude/settings.json`, mapping the canonical Claude IDs (`claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-fable-5`, `claude-fable-5-1`) to your OpenRouter IDs.
-- Independently of that, the proxy resolves any Claude-shaped request model (`opus`, `sonnet[1m]`, `claude-opus-4-6`, `claude-fable-5-1`, …) to the configured role, ignoring version numbers. New Claude versions therefore route correctly without a config change.
+- Saving models in the UI also writes `modelOverrides` and an `env` block into `~/.claude/settings.json`: the canonical Claude IDs (`claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`, `claude-fable-5`, `claude-fable-5-1`) mapped to your OpenRouter IDs, plus `ANTHROPIC_DEFAULT_<ROLE>_MODEL` / `_NAME` / `_DESCRIPTION` so the picker shows a readable label.
+- Independently of that, the proxy resolves any Claude-shaped request model (`opus`, `sonnet[1m]`, `claude-opus-5-5`, `claude-opus-4-6`, `claude-fable-5-1`, …) to the configured role, ignoring version numbers. New Claude versions therefore route correctly without a config change.
 - Any other model ID is forwarded to OpenRouter as-is, so you can also request a model directly.
 
 ## Architecture
