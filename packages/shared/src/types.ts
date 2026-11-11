@@ -43,6 +43,8 @@ export interface ServerConfig {
   host: string;
   port: number;
   timeoutMs: number;
+  /** Max request body size in bytes; Claude Code resends the full conversation each turn. */
+  bodyLimit: number;
 }
 
 export interface SecurityConfig {
@@ -94,7 +96,7 @@ export interface AppConfig {
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
-  server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
+  server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000, bodyLimit: 64 * 1024 * 1024 },
   openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '' },
   models: { opus: '', sonnet: '', haiku: '' },
   enablePromptCaching: false,
@@ -124,6 +126,8 @@ export const ServerConfigSchema = z.object({
   host: z.string().default('127.0.0.1'),
   port: z.number().int().min(1).max(65535).default(4000),
   timeoutMs: z.number().int().min(1000).default(3_000_000),
+  // 1 MiB altı uzun Claude Code oturumlarında 413 + ECONNRESET üretir
+  bodyLimit: z.number().int().min(1024 * 1024).default(64 * 1024 * 1024),
 }).passthrough();
 
 export const OpenRouterConfigSchema = z.object({

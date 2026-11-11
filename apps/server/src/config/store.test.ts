@@ -55,7 +55,7 @@ describe('config store', () => {
     // UI kısmi nesne gönderiyor: yalnızca host değişiyor
     saveConfig({ server: { host: 'localhost' } as any });
     const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
-    expect(raw.server).toEqual({ host: 'localhost', port: 4000, timeoutMs: 3_000_000 });
+    expect(raw.server).toEqual({ host: 'localhost', port: 4000, timeoutMs: 3_000_000, bodyLimit: 64 * 1024 * 1024 });
     expect(raw.models).toEqual({ opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' });
     expect(raw.security).toEqual({ allowRemote: false, localAuthToken: 'tok' });
   });

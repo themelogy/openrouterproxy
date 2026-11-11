@@ -14,13 +14,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = [join(__dirname, '../../web/dist'), join(__dirname, '../apps/web/dist')]
   .find(p => existsSync(join(p, 'index.html'))) ?? join(__dirname, '../apps/web/dist');
 
-export async function createApp() {
+// Claude Code her turda tüm konuşmayı gönderir; 1 MiB varsayılanı uzun
+// oturumlarda 413 + soket kapatma (istemcide ECONNRESET) üretir.
+const DEFAULT_BODY_LIMIT = 64 * 1024 * 1024;
+
+export async function createApp(bodyLimit = DEFAULT_BODY_LIMIT) {
   const app = Fastify({
     logger: { level: 'info' },
     disableRequestLogging: true,
-    // Claude Code her turda tüm konuşmayı gönderir; 1 MiB varsayılanı uzun
-    // oturumlarda 413 + soket kapatma (istemcide ECONNRESET) üretir.
-    bodyLimit: 64 * 1024 * 1024,
+    bodyLimit,
   });
 
   // CORS — only allow same origin (localhost)
@@ -61,7 +63,7 @@ export async function createApp() {
 async function main() {
   const config = await import('./config/store.js').then(m => m.loadConfig());
 
-  const app = await createApp();
+  const app = await createApp(config.server.bodyLimit);
   await app.listen({ host: config.server.host, port: config.server.port });
 
   app.log.info({ address: `http://${config.server.host}:${config.server.port}` }, 'Server listening');
