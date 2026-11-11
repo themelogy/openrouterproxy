@@ -52,6 +52,9 @@ export async function register(app: FastifyInstance) {
     return maskApiKey(config);
   });
 
+  // GET /api/launch-key — unmasked key for the Launch command (localhost-only via auth guard)
+  app.get('/api/launch-key', async () => ({ apiKey: loadConfig().openrouter.apiKey }));
+
   // PUT /api/config — update config
   app.put('/api/config', async (req, reply) => {
     const partial = req.body as Partial<AppConfig>;

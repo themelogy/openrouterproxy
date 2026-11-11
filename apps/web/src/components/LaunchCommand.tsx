@@ -7,6 +7,7 @@ type LaunchCfg = {
   server: { host: string; port: number; timeoutMs?: number };
   openrouter: { apiKey: string };
   models: { fable: ModelValue; opus: ModelValue; sonnet: ModelValue; haiku: ModelValue };
+  security?: { localAuthToken?: string };
 };
 
 type DesktopStatus = { installed: boolean; enabled: boolean; dir: string; libraryDir: string };
@@ -29,10 +30,12 @@ export default function LaunchCommand() {
   const [desktop, setDesktop] = useState<DesktopStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authToken, setAuthToken] = useState('');
 
   useEffect(() => {
     fetch('/api/config').then(r => r.ok ? r.json() : null).then(setConfig);
     fetch('/api/claude-desktop').then(r => r.ok ? r.json() : null).then(setDesktop);
+    fetch('/api/launch-key').then(r => r.ok ? r.json() : null).then(d => d?.apiKey && setAuthToken(d.apiKey));
   }, []);
 
   function buildCommand(): string {
@@ -42,8 +45,7 @@ export default function LaunchCommand() {
     const opus = modelId(config.models.opus) || 'openrouter/your-opus-model';
     const sonnet = modelId(config.models.sonnet) || 'openrouter/your-sonnet-model';
     const haiku = modelId(config.models.haiku) || 'openrouter/your-haiku-model';
-    // Proxy kendi API anahtarını kullanır; istemci token'ı yalnızca yerel erişim kontrolü içindir
-    const apiKey = 'placeholder';
+    const apiKey = authToken || 'placeholder';
 
     const vars: Array<[string, string]> = [
       ['ANTHROPIC_BASE_URL', base],
