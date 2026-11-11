@@ -3,7 +3,13 @@ import type { ModelConfig } from '@shared/types';
 import { resolveModelStrict, resolveModelAlias } from './model-resolver.js';
 
 describe('model resolver', () => {
-  const config: ModelConfig = { opus: 'openrouter/claude-3-opus', sonnet: 'openrouter/claude-3-sonnet', haiku: 'openrouter/claude-3-haiku' };
+  const config: ModelConfig = { fable: '', opus: 'openrouter/claude-3-opus', sonnet: 'openrouter/claude-3-sonnet', haiku: 'openrouter/claude-3-haiku' };
+
+  it('resolves fable alias', () => {
+    const fableConfig: ModelConfig = { fable: 'openrouter/fable', opus: 'openrouter/claude-3-opus', sonnet: '', haiku: '' };
+    expect(resolveModelStrict('claude-fable-5', fableConfig)).toEqual({ resolved: 'openrouter/fable' });
+    expect(resolveModelStrict('claude-fable', fableConfig)).toEqual({ resolved: 'openrouter/fable' });
+  });
 
   it('resolves opus alias', () => {
     const result = resolveModelStrict('claude-opus-2', config);
@@ -32,7 +38,7 @@ describe('model resolver', () => {
   });
 
   it('returns error when alias configured but empty', () => {
-    const emptyConfig: ModelConfig = { opus: '', sonnet: '', haiku: '' };
+    const emptyConfig: ModelConfig = { fable: '', opus: '', sonnet: '', haiku: '' };
     const result = resolveModelStrict('claude-opus-2', emptyConfig);
     expect(result).toHaveProperty('error');
   });

@@ -6,7 +6,7 @@ vi.mock('../config/store.js', () => ({
   loadConfig: vi.fn(() => ({
     server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
     openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '' },
-    models: { opus: '', sonnet: '', haiku: '' },
+    models: { fable: '', opus: '', sonnet: '', haiku: '' },
     security: { localAuthToken: 'test-token', allowRemote: false },
   })),
 }));

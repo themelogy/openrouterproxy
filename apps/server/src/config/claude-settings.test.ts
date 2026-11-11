@@ -11,10 +11,11 @@ describe('claude settings sync', () => {
   beforeEach(cleanup);
   afterEach(cleanup);
 
-  it('writes exactly the three canonical model IDs', () => {
-    syncModelOverrides({ opus: 'deepseek/opus', sonnet: { id: 'deepseek/sonnet' }, haiku: 'deepseek/haiku' });
+  it('writes exactly the four canonical model IDs', () => {
+    syncModelOverrides({ fable: 'deepseek/fable', opus: 'deepseek/opus', sonnet: { id: 'deepseek/sonnet' }, haiku: 'deepseek/haiku' });
     const raw = JSON.parse(readFileSync(CLAUDE_SETTINGS_PATH, 'utf-8'));
     expect(raw.modelOverrides).toEqual({
+      'claude-fable-5': 'deepseek/fable',
       'claude-opus-4-6': 'deepseek/opus',
       'claude-sonnet-4-6': 'deepseek/sonnet',
       'claude-haiku-4-5': 'deepseek/haiku',
@@ -24,19 +25,20 @@ describe('claude settings sync', () => {
   it('preserves unrelated settings and user-added overrides', () => {
     writeFileSync(CLAUDE_SETTINGS_PATH, JSON.stringify({
       theme: 'dark',
-      modelOverrides: { 'claude-opus-4-6': 'old/model', 'claude-fable-5': 'x/y' },
+      modelOverrides: { 'claude-opus-4-6': 'old/model', 'claude-fable-5-1': 'x/y' },
     }));
-    syncModelOverrides({ opus: 'new/opus', sonnet: 'new/sonnet', haiku: 'new/haiku' });
+    syncModelOverrides({ fable: '', opus: 'new/opus', sonnet: 'new/sonnet', haiku: 'new/haiku' });
     const raw = JSON.parse(readFileSync(CLAUDE_SETTINGS_PATH, 'utf-8'));
     expect(raw.theme).toBe('dark');
     expect(raw.modelOverrides['claude-opus-4-6']).toBe('new/opus');
-    expect(raw.modelOverrides['claude-fable-5']).toBe('x/y');
+    expect(raw.modelOverrides['claude-fable-5-1']).toBe('x/y');
   });
 
   it('removes the override when a role model is cleared', () => {
-    syncModelOverrides({ opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' });
-    syncModelOverrides({ opus: '', sonnet: 'a/c', haiku: 'a/d' });
+    syncModelOverrides({ fable: 'a/e', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' });
+    syncModelOverrides({ fable: '', opus: '', sonnet: 'a/c', haiku: 'a/d' });
     const raw = JSON.parse(readFileSync(CLAUDE_SETTINGS_PATH, 'utf-8'));
+    expect(raw.modelOverrides['claude-fable-5']).toBeUndefined();
     expect(raw.modelOverrides['claude-opus-4-6']).toBeUndefined();
     expect(raw.modelOverrides['claude-sonnet-4-6']).toBe('a/c');
   });
@@ -44,7 +46,7 @@ describe('claude settings sync', () => {
   it('refuses to overwrite a broken settings file', () => {
     const broken = '{not json';
     writeFileSync(CLAUDE_SETTINGS_PATH, broken);
-    expect(() => syncModelOverrides({ opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' })).toThrow();
+    expect(() => syncModelOverrides({ fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' })).toThrow();
     expect(readFileSync(CLAUDE_SETTINGS_PATH, 'utf-8')).toBe(broken);
   });
 });

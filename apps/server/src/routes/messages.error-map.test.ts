@@ -8,7 +8,7 @@ vi.mock('../config/store.js', () => ({
   loadConfig: () => ({
     server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
     openrouter: { baseUrl: 'https://example.test/api/v1', apiKey: 'k' },
-    models: { opus: 'test/opus', sonnet: 'test/sonnet', haiku: 'test/haiku' },
+    models: { fable: '', opus: 'test/opus', sonnet: 'test/sonnet', haiku: 'test/haiku' },
   }),
 }));
 

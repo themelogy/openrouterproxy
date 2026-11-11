@@ -6,7 +6,7 @@ type ModelValue = string | { id: string };
 type LaunchCfg = {
   server: { host: string; port: number; timeoutMs?: number };
   openrouter: { apiKey: string };
-  models: { opus: ModelValue; sonnet: ModelValue; haiku: ModelValue };
+  models: { fable: ModelValue; opus: ModelValue; sonnet: ModelValue; haiku: ModelValue };
 };
 
 type DesktopStatus = { installed: boolean; enabled: boolean; dir: string; libraryDir: string };
@@ -38,6 +38,7 @@ export default function LaunchCommand() {
   function buildCommand(): string {
     if (!config) return 'Loading...';
     const base = `http://${config.server.host}:${config.server.port}`;
+    const fable = modelId(config.models.fable) || 'openrouter/your-fable-model';
     const opus = modelId(config.models.opus) || 'openrouter/your-opus-model';
     const sonnet = modelId(config.models.sonnet) || 'openrouter/your-sonnet-model';
     const haiku = modelId(config.models.haiku) || 'openrouter/your-haiku-model';
@@ -47,6 +48,7 @@ export default function LaunchCommand() {
     const vars: Array<[string, string]> = [
       ['ANTHROPIC_BASE_URL', base],
       ['ANTHROPIC_AUTH_TOKEN', apiKey],
+      ['ANTHROPIC_DEFAULT_FABLE_MODEL', fable],
       ['ANTHROPIC_DEFAULT_OPUS_MODEL', opus],
       ['ANTHROPIC_DEFAULT_SONNET_MODEL', sonnet],
       ['ANTHROPIC_DEFAULT_HAIKU_MODEL', haiku],
@@ -140,7 +142,7 @@ export default function LaunchCommand() {
         {desktop?.installed && (
           <div className={styles.hint}>
             Turning this off restores the settings Claude Desktop had before.
-            Restart the app after changing it. Models appear as claude-opus / claude-sonnet / claude-haiku.
+            Restart the app after changing it. Models appear as claude-fable / claude-opus / claude-sonnet / claude-haiku.
           </div>
         )}
         {error && <div className={styles.hint}>{error}</div>}

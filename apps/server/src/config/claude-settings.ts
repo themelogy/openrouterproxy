@@ -10,6 +10,7 @@ export const CLAUDE_SETTINGS_PATH = process.env.CLAUDE_SETTINGS_PATH
 // Claude Code modelOverrides anahtarları yalnızca kanonik Anthropic model ID'lerini kabul eder
 // (takma adlar "opus" gibi sessizce yok sayılır). Rol modeli boşsa anahtar silinir.
 const ROLE_KEYS: Record<keyof ModelConfig, string> = {
+  fable: 'claude-fable-5',
   opus: 'claude-opus-4-6',
   sonnet: 'claude-sonnet-4-6',
   haiku: 'claude-haiku-4-5',

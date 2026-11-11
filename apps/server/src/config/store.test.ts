@@ -16,9 +16,20 @@ describe('config store', () => {
   });
 
   it('persists and reloads config', () => {
-    saveConfig({ models: { opus: 'foo/bar', sonnet: 'baz/qux', haiku: 'quux/corge' } });
+    saveConfig({ models: { fable: '', opus: 'foo/bar', sonnet: 'baz/qux', haiku: 'quux/corge' } });
     const cfg = loadConfig();
     expect(cfg.models.opus).toBe('foo/bar');
+  });
+
+  it('fills in fable when an old config file lacks it', () => {
+    writeFileSync(CONFIG_PATH, JSON.stringify({
+      server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
+      openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-real' },
+      models: { opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
+    }));
+    const cfg = loadConfig();
+    expect(cfg.models.fable).toBe('');
+    expect(cfg.models.opus).toBe('a/b');
   });
 
   it('masks API key', () => {
@@ -35,10 +46,10 @@ describe('config store', () => {
     writeFileSync(CONFIG_PATH, JSON.stringify({
       server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
       openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-real' },
-      models: { opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
+      models: { fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
       myCustomField: { keep: true },
     }));
-    saveConfig({ models: { opus: 'x/y', sonnet: 'a/c', haiku: 'a/d' } });
+    saveConfig({ models: { fable: '', opus: 'x/y', sonnet: 'a/c', haiku: 'a/d' } });
     const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
     expect(raw.myCustomField).toEqual({ keep: true });
     expect(raw.models.opus).toBe('x/y');
@@ -49,14 +60,14 @@ describe('config store', () => {
     writeFileSync(CONFIG_PATH, JSON.stringify({
       server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
       openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-real' },
-      models: { opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
+      models: { fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
       security: { allowRemote: false, localAuthToken: 'tok' },
     }));
     // UI kısmi nesne gönderiyor: yalnızca host değişiyor
     saveConfig({ server: { host: 'localhost' } as any });
     const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
     expect(raw.server).toEqual({ host: 'localhost', port: 4000, timeoutMs: 3_000_000, bodyLimit: 64 * 1024 * 1024 });
-    expect(raw.models).toEqual({ opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' });
+    expect(raw.models).toEqual({ fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' });
     expect(raw.security).toEqual({ allowRemote: false, localAuthToken: 'tok' });
   });
 
@@ -64,10 +75,10 @@ describe('config store', () => {
     writeFileSync(CONFIG_PATH, JSON.stringify({
       server: { host: '127.0.0.1', port: 4000 },
       openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-real', httpReferer: 'https://me.dev', appTitle: 'My Proxy' },
-      models: { opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
+      models: { fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
     }));
     // Eksik server.timeoutMs şema varsayılanıyla eklenir; elle eklenen alanlar korunur
-    saveConfig({ models: { opus: 'x/y', sonnet: 'a/c', haiku: 'a/d' } });
+    saveConfig({ models: { fable: '', opus: 'x/y', sonnet: 'a/c', haiku: 'a/d' } });
     const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
     expect(raw.openrouter.httpReferer).toBe('https://me.dev');
     expect(raw.openrouter.appTitle).toBe('My Proxy');
@@ -79,7 +90,7 @@ describe('config store', () => {
     writeFileSync(CONFIG_PATH, JSON.stringify({
       server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
       openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-real' },
-      models: { opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
+      models: { fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
     }));
     saveConfig({ server: { port: 4100 } } as any);
     const backup = JSON.parse(readFileSync(BACKUP_PATH, 'utf-8'));
@@ -91,7 +102,7 @@ describe('config store', () => {
     writeFileSync(CONFIG_PATH, JSON.stringify({
       server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
       openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '' },
-      models: { opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
+      models: { fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
     }));
     saveConfig({ openrouter: { apiKey: '••••' } as any });
     const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
@@ -102,7 +113,7 @@ describe('config store', () => {
     writeFileSync(CONFIG_PATH, JSON.stringify({
       server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
       openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-real' },
-      models: { opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
+      models: { fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
     }));
     saveConfig({ server: { host: null } } as any);
     const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
@@ -113,7 +124,7 @@ describe('config store', () => {
     writeFileSync(CONFIG_PATH, JSON.stringify({
       server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
       openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: 'sk-real' },
-      models: { opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
+      models: { fable: '', opus: 'a/b', sonnet: 'a/c', haiku: 'a/d' },
     }));
     saveConfig({ server: { port: undefined } } as any);
     const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));

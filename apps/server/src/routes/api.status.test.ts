@@ -14,7 +14,7 @@ import { register } from './api.route.js';
 const config = (apiKey: string) => ({
   server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000 },
   openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey },
-  models: { opus: '', sonnet: '', haiku: '' },
+  models: { fable: '', opus: '', sonnet: '', haiku: '' },
 });
 
 let app: FastifyInstance;

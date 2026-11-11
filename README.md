@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` starts two processes: Vite on `http://localhost:5173` (the UI, proxying `/api` and `/v1` to the server) and Fastify on `127.0.0.1:4000`. Open the Vite URL, paste your OpenRouter API key, and pick models for the Opus / Sonnet / Haiku roles. The Web UI writes the config file for you; no manual JSON editing needed.
+`npm run dev` starts two processes: Vite on `http://localhost:5173` (the UI, proxying `/api` and `/v1` to the server) and Fastify on `127.0.0.1:4000`. Open the Vite URL, paste your OpenRouter API key, and pick models for the Fable / Opus / Sonnet / Haiku roles. The Web UI writes the config file for you; no manual JSON editing needed.
 
 Production — build once, then run:
 
@@ -60,7 +60,7 @@ Claude Code CLI  →  http://127.0.0.1:4000 (Fastify proxy)  →  OpenRouter API
 
 - **Streaming passthrough** — SSE events forwarded byte-by-byte without buffering
 - **Tool-use support** — tool definitions, calls, and results forwarded intact
-- **Model routing** — configure separate models for Opus, Sonnet, Haiku roles
+- **Model routing** — configure separate models for Fable, Opus, Sonnet, Haiku roles
 - **Provider routing** — per-model provider picker (price, latency, throughput, uptime) mapped to OpenRouter provider options
 - **Claude Desktop toggle** — route the Desktop app through the proxy and restore the previous settings on disable
 - **Web UI** — configure API key, models, proxy settings without editing files
@@ -92,6 +92,7 @@ On Windows set them in PowerShell (`$env:CC_PROXY_CONFIG_PATH = 'D:\proxy\config
   "server": { "host": "127.0.0.1", "port": 4000, "timeoutMs": 3000000 },
   "openrouter": { "baseUrl": "https://openrouter.ai/api/v1", "apiKey": "" },
   "models": {
+    "fable": "",
     "opus": { "id": "anthropic/claude-3.5-sonnet", "providerOptions": { "sort": "throughput" } },
     "sonnet": "anthropic/claude-3.5-sonnet",
     "haiku": "anthropic/claude-3-haiku"
@@ -121,7 +122,7 @@ Caveats:
 
 - If `Claude-3p/configLibrary` is missing (common on Windows, where the folder only appears after the 3P build runs), the UI shows **Create 3P config folder** — click it, then tick the checkbox.
 - Quit Claude Desktop **completely** before toggling (Windows: also from the notification area; macOS: Cmd+Q). Desktop rewrites its config on exit, and on Windows the open file is locked, so toggling while it runs gets overwritten or fails.
-- Desktop only accepts Claude-looking model IDs in `/v1/models`, so the proxy exposes your roles as `claude-opus`, `claude-sonnet`, `claude-haiku`. Restart Desktop after toggling.
+- Desktop only accepts Claude-looking model IDs in `/v1/models`, so the proxy exposes your roles as `claude-fable`, `claude-opus`, `claude-sonnet`, `claude-haiku`. Restart Desktop after toggling.
 - The proxy must be running for Desktop to work.
 
 ## API Endpoints
