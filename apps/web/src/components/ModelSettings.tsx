@@ -297,7 +297,7 @@ export default function ModelSettings({ config, onSave }: {
   onSave: (partial: Partial<Config>) => void;
 }) {
   const [models, setModels] = useState(config.models);
-  const [activeTab, setActiveTab] = useState<keyof Config['models']>('opus');
+  const [activeTab, setActiveTab] = useState<keyof Config['models']>('fable');
 
   useEffect(() => { setModels(config.models); }, [config]);
 
