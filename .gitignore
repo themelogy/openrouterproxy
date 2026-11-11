@@ -6,6 +6,7 @@ dist/
 .superpowers
 .claude
 /graphify-out
+.playwright-mcp
 /docs
 data/
 logs/

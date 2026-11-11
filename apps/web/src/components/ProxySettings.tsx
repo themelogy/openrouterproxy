@@ -31,15 +31,14 @@ export default function ProxySettings({ config, onSave }: {
         <input type="text" value={server.timeoutMs} onChange={e => setServer({ ...server, timeoutMs: parseInt(e.target.value) || 3000000 })} />
       </div>
       <div className={styles.field}>
-        <label>Max Body Size (MB) — applies after restart</label>
+        <label>Max Body Size (MB)</label>
         <input type="text" value={bodyLimitMb} onChange={e => setBodyLimitMb(Math.max(1, parseInt(e.target.value) || 64))} />
+        <div className={styles.hint}>Applies after restart.</div>
       </div>
-      <div className={styles.field}>
-        <label>
-          <input type="checkbox" checked={caching} onChange={e => setCaching(e.target.checked)} />
-          {' '}Prompt Caching (Claude modelleri)
-        </label>
-      </div>
+      <label className={styles.checkboxRow}>
+        <input type="checkbox" checked={caching} onChange={e => setCaching(e.target.checked)} />
+        Prompt caching for Claude models
+      </label>
       <button onClick={() => onSave({ server: { ...server, bodyLimit: bodyLimitMb * MB }, enablePromptCaching: caching })} className={styles.primary}>Save Proxy Settings</button>
     </section>
   );

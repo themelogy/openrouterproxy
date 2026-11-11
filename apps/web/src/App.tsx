@@ -61,6 +61,11 @@ export default function App() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1>Claude Code Proxy</h1>
+        {config && (
+          <span className={styles.endpoint}>
+            {config.server.host}:{config.server.port}
+          </span>
+        )}
       </header>
 
       <StatusBar status={status} />
