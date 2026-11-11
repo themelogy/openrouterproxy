@@ -3,7 +3,7 @@ import type { ModelConfig } from '@shared/types';
 import { resolveModelStrict, resolveModelAlias } from './model-resolver.js';
 
 describe('model resolver', () => {
-  const config: ModelConfig = { opus: 'openrouter/claude-3-opus', sonnet: 'openrouter/claude-3-sonnet', haiku: 'openrouter/claude-3-haiku' };
+  const config: ModelConfig = { opus: 'openrouter/claude-3-opus', sonnet: 'openrouter/claude-3-sonnet', haiku: 'openrouter/claude-3-haiku', fable: 'openrouter/fable' };
 
   it('resolves opus alias', () => {
     const result = resolveModelStrict('claude-opus-2', config);
@@ -20,6 +20,12 @@ describe('model resolver', () => {
     expect(result).toEqual({ resolved: 'openrouter/claude-3-haiku' });
   });
 
+  it('resolves fable aliases and canonical IDs to the fable role', () => {
+    for (const id of ['fable', 'claude-fable', 'claude-fable-5', 'claude-fable-5-1']) {
+      expect(resolveModelStrict(id, config)).toEqual({ resolved: 'openrouter/fable' });
+    }
+  });
+
   it('resolves Claude Desktop gateway slot IDs', () => {
     expect(resolveModelStrict('claude-opus', config)).toEqual({ resolved: 'openrouter/claude-3-opus' });
     expect(resolveModelStrict('claude-sonnet', config)).toEqual({ resolved: 'openrouter/claude-3-sonnet' });
@@ -32,7 +38,7 @@ describe('model resolver', () => {
   });
 
   it('returns error when alias configured but empty', () => {
-    const emptyConfig: ModelConfig = { opus: '', sonnet: '', haiku: '' };
+    const emptyConfig: ModelConfig = { opus: '', sonnet: '', haiku: '', fable: '' };
     const result = resolveModelStrict('claude-opus-2', emptyConfig);
     expect(result).toHaveProperty('error');
   });

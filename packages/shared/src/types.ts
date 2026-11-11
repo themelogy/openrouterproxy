@@ -79,6 +79,7 @@ export interface ModelConfigEntry {
 export type ModelConfigValue = string | ModelConfigEntry;
 
 export interface ModelConfig {
+  fable: ModelConfigValue;
   opus: ModelConfigValue;
   sonnet: ModelConfigValue;
   haiku: ModelConfigValue;
@@ -98,7 +99,7 @@ export interface AppConfig {
 export const DEFAULT_CONFIG: AppConfig = {
   server: { host: '127.0.0.1', port: 4000, timeoutMs: 3_000_000, bodyLimit: 64 * 1024 * 1024 },
   openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '' },
-  models: { opus: '', sonnet: '', haiku: '' },
+  models: { fable: '', opus: '', sonnet: '', haiku: '' },
   enablePromptCaching: false,
   stripFields: [],
 };
@@ -117,6 +118,7 @@ export const ModelConfigEntrySchema = z.object({
 }).passthrough();
 
 export const ModelConfigSchema = z.object({
+  fable: z.union([z.string(), ModelConfigEntrySchema]).default(''),
   opus: z.union([z.string(), ModelConfigEntrySchema]),
   sonnet: z.union([z.string(), ModelConfigEntrySchema]),
   haiku: z.union([z.string(), ModelConfigEntrySchema]),

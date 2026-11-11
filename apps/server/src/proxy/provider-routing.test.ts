@@ -8,6 +8,7 @@ describe('provider routing', () => {
       opus: { id: 'anthropic/claude-3.5-sonnet', providerOptions: { sort: 'price' } },
       sonnet: '',
       haiku: '',
+      fable: '',
     };
     const result = resolveModelStrict('claude-opus-2', config);
     expect('error' in result).toBe(false);
@@ -22,6 +23,7 @@ describe('provider routing', () => {
       opus: { id: 'anthropic/claude-3.5-sonnet', providerOptions: { only: ['together', 'fireworks'], allowFallbacks: false } },
       sonnet: '',
       haiku: '',
+      fable: '',
     };
     const result = resolveModelStrict('claude-opus-2', config);
     expect('error' in result).toBe(false);
@@ -35,6 +37,7 @@ describe('provider routing', () => {
       opus: { id: 'anthropic/claude-3.5-sonnet', providerOptions: { ignore: ['deepseek'] } },
       sonnet: '',
       haiku: '',
+      fable: '',
     };
     const result = resolveModelStrict('claude-opus-2', config);
     expect('error' in result).toBe(false);
@@ -48,6 +51,7 @@ describe('provider routing', () => {
       opus: 'anthropic/claude-3.5-sonnet',
       sonnet: '',
       haiku: '',
+      fable: '',
     };
     const result = resolveModelStrict('claude-opus-2', config);
     expect('error' in result).toBe(false);
@@ -58,7 +62,7 @@ describe('provider routing', () => {
   });
 
   it('passes through non-alias model without provider options', () => {
-    const config = { opus: '', sonnet: '', haiku: '' };
+    const config = { opus: '', sonnet: '', haiku: '', fable: '' };
     const result = resolveModelStrict('anthropic/claude-3.5-haiku', config);
     expect('error' in result).toBe(false);
     if (!('error' in result)) {
@@ -72,13 +76,14 @@ describe('provider routing', () => {
       opus: { id: '', providerOptions: { sort: 'price' as const } },
       sonnet: '',
       haiku: '',
+      fable: '',
     };
     const result = resolveModelStrict('claude-opus-2', config);
     expect('error' in result).toBe(true);
   });
 
   it('handles empty model ID string (backward compat)', () => {
-    const config = { opus: '', sonnet: '', haiku: '' };
+    const config = { opus: '', sonnet: '', haiku: '', fable: '' };
     const result = resolveModelStrict('claude-opus-2', config);
     expect('error' in result).toBe(true);
   });
@@ -88,6 +93,7 @@ describe('provider routing', () => {
       opus: '',
       sonnet: { id: 'anthropic/claude-3.5-sonnet', providerOptions: { sort: 'throughput' as const } },
       haiku: '',
+      fable: '',
     };
     const result = resolveModelStrict('claude-sonnet-3.5', config);
     expect('error' in result).toBe(false);
@@ -101,6 +107,7 @@ describe('provider routing', () => {
       opus: { id: 'deepseek/deepseek-v4.1-flash-1017', providerOptions: { only: ['inference-net/us'], allowFallbacks: false } },
       sonnet: '',
       haiku: '',
+      fable: '',
     };
     const result = resolveModelStrict('deepseek/deepseek-v4.1-flash-1017', config);
     expect('error' in result).toBe(false);
@@ -119,6 +126,7 @@ describe('provider routing', () => {
       opus: { id: 'anthropic/claude-3.5-opus', providerOptions: { sort: 'price' as const, only: ['fireworks'], ignore: ['deepseek'], allowFallbacks: false } },
       sonnet: '',
       haiku: '',
+      fable: '',
     };
     const result = resolveModelStrict('claude-opus-2', config);
     expect('error' in result).toBe(false);

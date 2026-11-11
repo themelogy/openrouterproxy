@@ -9,10 +9,12 @@ export const CLAUDE_SETTINGS_PATH = process.env.CLAUDE_SETTINGS_PATH
 
 // Claude Code modelOverrides anahtarları yalnızca kanonik Anthropic model ID'lerini kabul eder
 // (takma adlar "opus" gibi sessizce yok sayılır). Rol modeli boşsa anahtar silinir.
-const ROLE_KEYS: Record<keyof ModelConfig, string> = {
-  opus: 'claude-opus-4-6',
-  sonnet: 'claude-sonnet-4-6',
-  haiku: 'claude-haiku-4-5',
+// Fable 5 ve 5.1 ayrı kanonik ID'ler; kullanıcı hangisini seçerse seçsin role gitsin.
+const ROLE_KEYS: Record<keyof ModelConfig, string[]> = {
+  fable: ['claude-fable-5', 'claude-fable-5-1'],
+  opus: ['claude-opus-4-6'],
+  sonnet: ['claude-sonnet-4-6'],
+  haiku: ['claude-haiku-4-5'],
 };
 
 function modelId(value: ModelConfig[keyof ModelConfig]): string {
@@ -39,8 +41,10 @@ export function syncModelOverrides(models: ModelConfig): void {
 
   for (const role of Object.keys(ROLE_KEYS) as (keyof ModelConfig)[]) {
     const id = modelId(models[role]);
-    if (id) overrides[ROLE_KEYS[role]] = id;
-    else delete overrides[ROLE_KEYS[role]];
+    for (const key of ROLE_KEYS[role]) {
+      if (id) overrides[key] = id;
+      else delete overrides[key];
+    }
   }
   raw.modelOverrides = overrides;
 

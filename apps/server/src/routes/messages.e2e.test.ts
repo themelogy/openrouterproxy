@@ -11,7 +11,7 @@ let baseUrl: string;
 const testApiKey = 'test-key-for-integration';
 
 beforeAll(async () => {
-  saveConfig({ openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: testApiKey }, models: { opus: 'test/opus', sonnet: 'test/sonnet', haiku: 'test/haiku' } });
+  saveConfig({ openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: testApiKey }, models: { opus: 'test/opus', sonnet: 'test/sonnet', haiku: 'test/haiku', fable: 'test/fable' } });
   server = Fastify({ logger: false });
   await messagesRoute(server);
   const address = await server.listen({ port: 0, host: '127.0.0.1' });
@@ -21,14 +21,14 @@ beforeAll(async () => {
 afterAll(async () => { await server.close(); });
 
 beforeEach(() => {
-  saveConfig({ openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: testApiKey }, models: { opus: 'test/opus', sonnet: 'test/sonnet', haiku: 'test/haiku' } });
+  saveConfig({ openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: testApiKey }, models: { opus: 'test/opus', sonnet: 'test/sonnet', haiku: 'test/haiku', fable: 'test/fable' } });
 });
 
 describe('POST /v1/messages', () => {
   it('returns 401 when API key is empty', async () => {
     // Boş anahtar "değişiklik yok" sayılıp korunur; anahtarsız durumu simüle etmek için dosyayı sil
     try { unlinkSync(CONFIG_PATH); } catch {}
-    saveConfig({ openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '' }, models: { opus: '', sonnet: '', haiku: '' } });
+    saveConfig({ openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '' }, models: { opus: '', sonnet: '', haiku: '', fable: '' } });
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'claude-opus-2', messages: [{ role: 'user', content: 'hi' }], max_tokens: 100 }),
