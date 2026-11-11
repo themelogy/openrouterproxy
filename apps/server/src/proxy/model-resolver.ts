@@ -1,22 +1,14 @@
 import type { ModelConfig, ProviderOptions } from '@shared/types';
 
-const ALIAS_MAP: Record<string, keyof ModelConfig> = {
-  'claude-fable-5': 'fable',
-  'claude-fable-5-1': 'fable',
-  'claude-opus-2': 'opus',
-  'claude-sonnet-3.5': 'sonnet',
-  'claude-haiku-3': 'haiku',
-  // Claude Code env var aliases: ANTHROPIC_DEFAULT_OPUS_MODEL etc.
-  'fable': 'fable',
-  'opus': 'opus',
-  'sonnet': 'sonnet',
-  'haiku': 'haiku',
-  // Claude Desktop gateway modu bu slot ID'lerini gönderir (GET /v1/models)
-  'claude-fable': 'fable',
-  'claude-opus': 'opus',
-  'claude-sonnet': 'sonnet',
-  'claude-haiku': 'haiku',
-};
+const ROLES = ['fable', 'opus', 'sonnet', 'haiku'] as const;
+
+// "sonnet", "opus[1m]", "claude-sonnet-4-6", "claude-fable-5-1", "claude-haiku" → rol adı.
+// Sürüm eki önemsiz; tanınmayan ID (ör. openrouter/claude-3-opus) olduğu gibi geçer.
+function roleOf(model: string): keyof ModelConfig | undefined {
+  const m = model.toLowerCase().replace(/\[1m\]$/, '');
+  const s = m.startsWith('claude-') ? m.slice(7) : m;
+  return ROLES.find(r => s === r || s.startsWith(`${r}-`));
+}
 
 export interface ResolvedModel {
   resolved: string;
@@ -29,7 +21,7 @@ function parseModelValue(value: ModelConfig['opus']): { id: string; providerOpti
 }
 
 export function resolveModelStrict(requestModel: string, config: ModelConfig): { resolved: string; providerOptions?: ProviderOptions } | { error: string } {
-  const alias = ALIAS_MAP[requestModel];
+  const alias = roleOf(requestModel);
   if (alias) {
     const entry = parseModelValue(config[alias]);
     if (!entry.id) return { error: `Model alias "${requestModel}" is configured but the ${alias} model ID is empty` };
@@ -38,7 +30,7 @@ export function resolveModelStrict(requestModel: string, config: ModelConfig): {
 
   // Claude Code sends the resolved ID (via modelOverrides), so match configured role IDs too.
   // shortcut: two roles sharing one ID resolve to the first role's options
-  for (const role of ['fable', 'opus', 'sonnet', 'haiku'] as const) {
+  for (const role of ROLES) {
     const entry = parseModelValue(config[role]);
     if (entry.id && entry.id === requestModel) {
       return { resolved: requestModel, providerOptions: entry.providerOptions };

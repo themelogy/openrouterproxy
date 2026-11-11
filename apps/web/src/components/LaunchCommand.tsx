@@ -48,15 +48,11 @@ export default function LaunchCommand() {
     const vars: Array<[string, string]> = [
       ['ANTHROPIC_BASE_URL', base],
       ['ANTHROPIC_AUTH_TOKEN', apiKey],
-      // _NAME olmadan /model menüsü satırı katalogdan tahmin eder ve yanlış Claude adı gösterir
+      // _NAME verilmezse /model satırı ham model ID'sini gösterir (Claude adı uydurulmaz)
       ['ANTHROPIC_DEFAULT_FABLE_MODEL', fable],
-      ['ANTHROPIC_DEFAULT_FABLE_MODEL_NAME', fable],
       ['ANTHROPIC_DEFAULT_OPUS_MODEL', opus],
-      ['ANTHROPIC_DEFAULT_OPUS_MODEL_NAME', opus],
       ['ANTHROPIC_DEFAULT_SONNET_MODEL', sonnet],
-      ['ANTHROPIC_DEFAULT_SONNET_MODEL_NAME', sonnet],
       ['ANTHROPIC_DEFAULT_HAIKU_MODEL', haiku],
-      ['ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME', haiku],
       ['API_TIMEOUT_MS', String(config.server.timeoutMs || 3000000)],
       ['CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', '1'],
     ];
