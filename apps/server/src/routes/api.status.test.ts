@@ -25,7 +25,7 @@ beforeEach(async () => {
 afterEach(async () => { await app.close(); vi.unstubAllGlobals(); });
 
 function stubFetch(status: number) {
-  const fetchMock = vi.fn(async () => new Response('{}', { status }));
+  const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response('{}', { status }));
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
@@ -59,6 +59,20 @@ describe('GET /api/status', () => {
     const fetchMock = stubFetch(200);
     await app.inject({ method: 'GET', url: '/api/status' });
     expect(fetchMock.mock.calls[0][0]).toMatch(/\/key$/);
+  });
+
+  // 60 sn'lik cache anahtar değişince eski sonucu göstermemeli
+  it('rechecks upstream after the API key is updated', async () => {
+    vi.mocked(loadConfig).mockReturnValue(config('bad-key') as any);
+    stubFetch(401);
+    expect((await app.inject({ method: 'GET', url: '/api/status' })).json().upstreamOk).toBe(false);
+
+    vi.mocked(loadConfig).mockReturnValue(config('good-key') as any);
+    stubFetch(200);
+    const put = await app.inject({ method: 'PUT', url: '/api/config', payload: { openrouter: { apiKey: 'good-key' } } });
+    expect(put.statusCode).toBe(200);
+
+    expect((await app.inject({ method: 'GET', url: '/api/status' })).json().upstreamOk).toBe(true);
   });
 });
 

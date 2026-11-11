@@ -44,7 +44,7 @@ export default function App() {
   async function handleSave(partial: Partial<Config>) {
     try {
       const r = await fetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(partial) });
-      if (r.ok) { setSaveMsg('Saved'); loadConfig(); }
+      if (r.ok) { setSaveMsg('Saved'); loadConfig(); loadStatus(); }
     } catch { /* */ }
   }
 

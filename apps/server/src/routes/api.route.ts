@@ -60,6 +60,8 @@ export async function register(app: FastifyInstance) {
     } catch (e) {
       return reply.code(400).send({ ok: false, error: (e as Error).message });
     }
+    // Anahtar/baseUrl değişti: 60 sn'lik status cache eski sonucu göstermesin.
+    if (partial.openrouter) statusCache = null;
     // Config yazıldı; settings sync başarısız olsa da settings.json'a dokunmadan geç.
     if (partial.models) {
       try { syncModelOverrides(loadConfig().models); }
