@@ -16,9 +16,29 @@ const ROLE_KEYS: Record<keyof ModelConfig, string> = {
   haiku: 'claude-haiku-4-5',
 };
 
+// /model menüsünde görünen etiketler; sürüm sabit, model ID'sinden türetilemez
+const ROLE_LABELS: Record<keyof ModelConfig, string> = {
+  fable: 'Fable 5.1',
+  opus: 'Opus 4.6',
+  sonnet: 'Sonnet 4.6',
+  haiku: 'Haiku 4.5',
+};
+
+const ROLE_ENV: Record<keyof ModelConfig, string> = {
+  fable: 'FABLE',
+  opus: 'OPUS',
+  sonnet: 'SONNET',
+  haiku: 'HAIKU',
+};
+
 function modelId(value: ModelConfig[keyof ModelConfig]): string {
   if (typeof value === 'string') return value.trim();
   return (value?.id || '').trim();
+}
+
+// "deepseek/deepseek-v4.1-flash-1017" → "deepseek-v4.1-flash" (açıklama metni için kısa ad)
+function shortModel(id: string): string {
+  return (id.split('/').pop() || id).replace(/-\d+$/, '');
 }
 
 export function syncModelOverrides(models: ModelConfig): void {
@@ -44,6 +64,24 @@ export function syncModelOverrides(models: ModelConfig): void {
     else delete overrides[ROLE_KEYS[role]];
   }
   raw.modelOverrides = overrides;
+
+  // /model seçicide rol adı ve açıklaması env'den okunur; rol boşsa üç anahtar da silinir
+  const env: Record<string, string> = { ...(raw.env as Record<string, string> | undefined) };
+  for (const role of Object.keys(ROLE_ENV) as (keyof ModelConfig)[]) {
+    const id = modelId(models[role]);
+    const prefix = `ANTHROPIC_DEFAULT_${ROLE_ENV[role]}_MODEL`;
+    if (id) {
+      env[prefix] = id;
+      env[`${prefix}_NAME`] = ROLE_LABELS[role];
+      env[`${prefix}_DESCRIPTION`] = `Custom ${ROLE_LABELS[role].split(' ')[0]} (${shortModel(id)})`;
+    } else {
+      delete env[prefix];
+      delete env[`${prefix}_NAME`];
+      delete env[`${prefix}_DESCRIPTION`];
+    }
+  }
+  if (Object.keys(env).length > 0) raw.env = env;
+  else delete raw.env;
 
   const dir = dirname(CLAUDE_SETTINGS_PATH);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
