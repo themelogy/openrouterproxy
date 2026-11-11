@@ -10,7 +10,7 @@ import styles from './styles/app.module.css';
 type Config = {
   server: { host: string; port: number; timeoutMs?: number; bodyLimit?: number };
   openrouter: { baseUrl: string; apiKey: string };
-  models: { fable: string | { id: string }; opus: string | { id: string }; sonnet: string | { id: string }; haiku: string | { id: string } };
+  models: { opus: string | { id: string }; sonnet: string | { id: string }; haiku: string | { id: string } };
   enablePromptCaching?: boolean;
 };
 

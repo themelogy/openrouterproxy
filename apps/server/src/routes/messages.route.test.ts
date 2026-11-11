@@ -25,7 +25,7 @@ describe('messages route', () => {
     const body = res.json();
 
     expect(body.has_more).toBe(false);
-    expect(body.data.map((m: any) => m.id)).toEqual(['claude-fable', 'claude-opus', 'claude-sonnet', 'claude-haiku']);
+    expect(body.data.map((m: any) => m.id)).toEqual(['claude-opus', 'claude-sonnet', 'claude-haiku']);
     for (const m of body.data) {
       expect(m.anthropic_family_tier).toBe(m.id.replace('claude-', ''));
       expect(m.is_family_default).toBe(true);

@@ -1,14 +1,18 @@
 import type { ModelConfig, ProviderOptions } from '@shared/types';
 
-const ROLES = ['fable', 'opus', 'sonnet', 'haiku'] as const;
-
-// "sonnet", "opus[1m]", "claude-sonnet-5-5", "claude-fable-5-1", "claude-haiku-5-5" → rol adı.
-// Sürüm eki önemsiz; tanınmayan ID (ör. openrouter/claude-3-opus) olduğu gibi geçer.
-function roleOf(model: string): keyof ModelConfig | undefined {
-  const m = model.toLowerCase().replace(/\[1m\]$/, '');
-  const s = m.startsWith('claude-') ? m.slice(7) : m;
-  return ROLES.find(r => s === r || s.startsWith(`${r}-`));
-}
+const ALIAS_MAP: Record<string, keyof ModelConfig> = {
+  'claude-opus-2': 'opus',
+  'claude-sonnet-3.5': 'sonnet',
+  'claude-haiku-3': 'haiku',
+  // Claude Code env var aliases: ANTHROPIC_DEFAULT_OPUS_MODEL etc.
+  'opus': 'opus',
+  'sonnet': 'sonnet',
+  'haiku': 'haiku',
+  // Claude Desktop gateway modu bu slot ID'lerini gönderir (GET /v1/models)
+  'claude-opus': 'opus',
+  'claude-sonnet': 'sonnet',
+  'claude-haiku': 'haiku',
+};
 
 export interface ResolvedModel {
   resolved: string;
@@ -21,7 +25,7 @@ function parseModelValue(value: ModelConfig['opus']): { id: string; providerOpti
 }
 
 export function resolveModelStrict(requestModel: string, config: ModelConfig): { resolved: string; providerOptions?: ProviderOptions } | { error: string } {
-  const alias = roleOf(requestModel);
+  const alias = ALIAS_MAP[requestModel];
   if (alias) {
     const entry = parseModelValue(config[alias]);
     if (!entry.id) return { error: `Model alias "${requestModel}" is configured but the ${alias} model ID is empty` };
@@ -30,7 +34,7 @@ export function resolveModelStrict(requestModel: string, config: ModelConfig): {
 
   // Claude Code sends the resolved ID (via modelOverrides), so match configured role IDs too.
   // shortcut: two roles sharing one ID resolve to the first role's options
-  for (const role of ROLES) {
+  for (const role of ['opus', 'sonnet', 'haiku'] as const) {
     const entry = parseModelValue(config[role]);
     if (entry.id && entry.id === requestModel) {
       return { resolved: requestModel, providerOptions: entry.providerOptions };

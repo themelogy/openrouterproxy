@@ -25,7 +25,7 @@ beforeEach(async () => {
 afterEach(async () => { await app.close(); vi.unstubAllGlobals(); });
 
 function stubFetch(status: number) {
-  const fetchMock = vi.fn(async (_url: string) => new Response('{}', { status }));
+  const fetchMock = vi.fn(async () => new Response('{}', { status }));
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }

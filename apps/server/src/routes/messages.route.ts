@@ -9,7 +9,6 @@ import { estimateContextTokens } from './token-count.route.js';
 
 // Claude Desktop (gateway modu) bu ID'lerde claude|opus|sonnet|haiku geçmesini şart koşar.
 const DESKTOP_SLOTS = [
-  { id: 'claude-fable', role: 'fable', tier: 'fable' },
   { id: 'claude-opus', role: 'opus', tier: 'opus' },
   { id: 'claude-sonnet', role: 'sonnet', tier: 'sonnet' },
   { id: 'claude-haiku', role: 'haiku', tier: 'haiku' },

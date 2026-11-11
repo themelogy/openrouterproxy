@@ -4,10 +4,9 @@ import styles from '../styles/app.module.css';
 type ProviderOptions = { sort?: 'price' | 'throughput'; only?: string[]; ignore?: string[]; allowFallbacks?: boolean };
 type ModelValue = { id: string; providerOptions?: ProviderOptions } | string;
 
-type Config = { models: { opus: ModelValue; sonnet: ModelValue; haiku: ModelValue; fable: ModelValue } };
+type Config = { models: { opus: ModelValue; sonnet: ModelValue; haiku: ModelValue } };
 
 const MODEL_TABS = [
-  { key: 'fable', label: 'Fable' },
   { key: 'opus', label: 'Opus' },
   { key: 'sonnet', label: 'Sonnet' },
   { key: 'haiku', label: 'Haiku' },
@@ -297,7 +296,7 @@ export default function ModelSettings({ config, onSave }: {
   onSave: (partial: Partial<Config>) => void;
 }) {
   const [models, setModels] = useState(config.models);
-  const [activeTab, setActiveTab] = useState<keyof Config['models']>('fable');
+  const [activeTab, setActiveTab] = useState<keyof Config['models']>('opus');
 
   useEffect(() => { setModels(config.models); }, [config]);
 
@@ -338,7 +337,6 @@ export default function ModelSettings({ config, onSave }: {
       </div>
 
       <div className={styles.tabContent}>
-        {activeTab === 'fable' && renderModelField('fable', 'Fable')}
         {activeTab === 'opus' && renderModelField('opus', 'Opus')}
         {activeTab === 'sonnet' && renderModelField('sonnet', 'Sonnet')}
         {activeTab === 'haiku' && renderModelField('haiku', 'Haiku')}
