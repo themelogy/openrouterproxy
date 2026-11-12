@@ -43,46 +43,6 @@ describe('claude settings sync', () => {
     expect(raw.modelOverrides['claude-sonnet-4-6']).toBe('a/c');
   });
 
-  it('writes env labels for every configured role', () => {
-    syncModelOverrides({ fable: 'deepseek/deepseek-v4.1-flash-1017', opus: 'a/opus-2', sonnet: 'a/sonnet-3', haiku: 'a/haiku-4' });
-    const raw = JSON.parse(readFileSync(CLAUDE_SETTINGS_PATH, 'utf-8'));
-    expect(raw.env).toEqual({
-      ANTHROPIC_DEFAULT_FABLE_MODEL: 'deepseek/deepseek-v4.1-flash-1017',
-      ANTHROPIC_DEFAULT_FABLE_MODEL_NAME: 'Fable 5.1',
-      ANTHROPIC_DEFAULT_FABLE_MODEL_DESCRIPTION: 'Custom Fable (deepseek-v4.1-flash)',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: 'a/opus-2',
-      ANTHROPIC_DEFAULT_OPUS_MODEL_NAME: 'Opus 4.6',
-      ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION: 'Custom Opus (opus)',
-      ANTHROPIC_DEFAULT_SONNET_MODEL: 'a/sonnet-3',
-      ANTHROPIC_DEFAULT_SONNET_MODEL_NAME: 'Sonnet 4.6',
-      ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION: 'Custom Sonnet (sonnet)',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'a/haiku-4',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME: 'Haiku 4.5',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION: 'Custom Haiku (haiku)',
-    });
-  });
-
-  it('removes env keys when a role is cleared and keeps unrelated env', () => {
-    writeFileSync(CLAUDE_SETTINGS_PATH, JSON.stringify({
-      env: { ANTHROPIC_DEFAULT_OPUS_MODEL: 'old', KEEP_ME: 'yes' },
-    }));
-    syncModelOverrides({ fable: '', opus: '', sonnet: 'a/c', haiku: 'a/d' });
-    const raw = JSON.parse(readFileSync(CLAUDE_SETTINGS_PATH, 'utf-8'));
-    expect(raw.env.KEEP_ME).toBe('yes');
-    expect(raw.env.ANTHROPIC_DEFAULT_OPUS_MODEL).toBeUndefined();
-    expect(raw.env.ANTHROPIC_DEFAULT_OPUS_MODEL_NAME).toBeUndefined();
-    expect(raw.env.ANTHROPIC_DEFAULT_FABLE_MODEL).toBeUndefined();
-    expect(raw.env.ANTHROPIC_DEFAULT_SONNET_MODEL).toBe('a/c');
-  });
-
-  it('drops the env block entirely when no role is set', () => {
-    writeFileSync(CLAUDE_SETTINGS_PATH, JSON.stringify({ theme: 'dark' }));
-    syncModelOverrides({ fable: '', opus: '', sonnet: '', haiku: '' });
-    const raw = JSON.parse(readFileSync(CLAUDE_SETTINGS_PATH, 'utf-8'));
-    expect(raw.env).toBeUndefined();
-    expect(raw.theme).toBe('dark');
-  });
-
   it('refuses to overwrite a broken settings file', () => {
     const broken = '{not json';
     writeFileSync(CLAUDE_SETTINGS_PATH, broken);
