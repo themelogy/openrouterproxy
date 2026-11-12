@@ -31,7 +31,7 @@ describe('POST /v1/messages', () => {
     saveConfig({ openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: '' }, models: { fable: '', opus: '', sonnet: '', haiku: '' } });
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-opus-2', messages: [{ role: 'user', content: 'hi' }], max_tokens: 100 }),
+      body: JSON.stringify({ model: 'claude-opus-4-6', messages: [{ role: 'user', content: 'hi' }], max_tokens: 100 }),
     });
     expect(res.status).toBe(401);
     const body = await res.json();
@@ -41,7 +41,7 @@ describe('POST /v1/messages', () => {
   it('returns 400 for invalid body (missing messages)', async () => {
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-opus-2', max_tokens: 100 }),
+      body: JSON.stringify({ model: 'claude-opus-4-6', max_tokens: 100 }),
     });
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -59,7 +59,7 @@ describe('POST /v1/messages', () => {
   it('returns 400 for invalid body (max_tokens not a number)', async () => {
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-opus-2', messages: [{ role: 'user', content: 'hi' }], max_tokens: -1 }),
+      body: JSON.stringify({ model: 'claude-opus-4-6', messages: [{ role: 'user', content: 'hi' }], max_tokens: -1 }),
     });
     expect(res.status).toBe(400);
   });
@@ -67,7 +67,7 @@ describe('POST /v1/messages', () => {
   it('resolves model alias and forwards request to upstream', async () => {
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-opus-2', messages: [{ role: 'user', content: 'hello' }], max_tokens: 50 }),
+      body: JSON.stringify({ model: 'claude-opus-4-6', messages: [{ role: 'user', content: 'hello' }], max_tokens: 50 }),
     });
     // Hits real OpenRouter — expect success or rate-limit, not 502 (proxy crash)
     expect([200, 400, 401, 429]).toContain(res.status);
@@ -76,7 +76,7 @@ describe('POST /v1/messages', () => {
   it('forwards upstream content-type when stream: true', async () => {
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-opus-2', messages: [{ role: 'user', content: 'hello' }], max_tokens: 50, stream: true }),
+      body: JSON.stringify({ model: 'claude-opus-4-6', messages: [{ role: 'user', content: 'hello' }], max_tokens: 50, stream: true }),
     });
     // Proxy forwards whatever upstream returns — could be SSE or JSON depending on model/balance
     expect(res.status).not.toBe(502);
@@ -87,7 +87,7 @@ describe('POST /v1/messages', () => {
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-opus-2',
+        model: 'claude-opus-4-6',
         messages: [{ role: 'user', content: 'what is 2+2?' }],
         max_tokens: 100,
         tools: [{ type: 'function', function: { name: 'calculator', description: 'A calculator', parameters: {} } }],
@@ -102,7 +102,7 @@ describe('POST /v1/messages', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-opus-2',
+        model: 'claude-opus-4-6',
         messages: [{ role: 'user', content: 'hi' }],
         max_tokens: 20,
         stream: true,
@@ -121,7 +121,7 @@ describe('POST /v1/messages', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-opus-2',
+        model: 'claude-opus-4-6',
         messages: [{ role: 'user', content: 'say one word' }],
         max_tokens: 10,
         stream: true,
@@ -143,7 +143,7 @@ describe('POST /v1/messages', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-opus-2',
+        model: 'claude-opus-4-6',
         messages: [{ role: 'user', content: 'what is 1+1? use calculator' }],
         max_tokens: 200,
         tools: [{ type: 'function', function: { name: 'calculator', description: 'A calculator', parameters: {} } }],

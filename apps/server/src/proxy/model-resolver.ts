@@ -1,10 +1,10 @@
 import type { ModelConfig, ProviderOptions } from '@shared/types';
+import { ROLE_KEYS } from '../config/claude-settings.js';
 
+// Kabul edilen adlar settings.json'a yazılan override anahtarlarıyla aynı olmalı:
+// ayrı bir liste tutulursa override dışı isimler sızabilir.
 const ALIAS_MAP: Record<string, keyof ModelConfig> = {
-  'claude-fable-5': 'fable',
-  'claude-opus-2': 'opus',
-  'claude-sonnet-3.5': 'sonnet',
-  'claude-haiku-3': 'haiku',
+  ...Object.fromEntries(Object.entries(ROLE_KEYS).map(([role, key]) => [key, role])) as Record<string, keyof ModelConfig>,
   // Claude Code env var aliases: ANTHROPIC_DEFAULT_OPUS_MODEL etc.
   'fable': 'fable',
   'opus': 'opus',
@@ -44,8 +44,8 @@ export function resolveModelStrict(requestModel: string, config: ModelConfig): {
     }
   }
 
-  // Pass through any non-alias model ID (assumed to be direct OpenRouter model)
-  return { resolved: requestModel };
+  // Bilinmeyen model reddedilir: yalnızca config.json'da tanımlı roller dışarı çıkabilir.
+  return { error: `Model "${requestModel}" is not configured in any role` };
 }
 
 // OpenRouter'ın Anthropic uyumlu ucu camelCase allowFallbacks'ı reddeder

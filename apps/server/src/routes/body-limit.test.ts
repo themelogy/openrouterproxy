@@ -26,7 +26,7 @@ describe('request body size', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-opus-2',
+          model: 'claude-opus-4-6',
           messages: [{ role: 'user', content: 'x'.repeat(8 * 1024) }],
           max_tokens: 10,
         }),
@@ -42,7 +42,7 @@ describe('request body size', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-opus-2',
+        model: 'claude-opus-4-6',
         messages: [{ role: 'user', content: 'x'.repeat(8 * 1024 * 1024) }],
         max_tokens: 10,
       }),

@@ -10,7 +10,7 @@ describe('provider routing', () => {
       sonnet: '',
       haiku: '',
     };
-    const result = resolveModelStrict('claude-opus-2', config);
+    const result = resolveModelStrict('claude-opus-4-6', config);
     expect('error' in result).toBe(false);
     if (!('error' in result)) {
       expect(result.resolved).toBe('anthropic/claude-3.5-sonnet');
@@ -25,7 +25,7 @@ describe('provider routing', () => {
       sonnet: '',
       haiku: '',
     };
-    const result = resolveModelStrict('claude-opus-2', config);
+    const result = resolveModelStrict('claude-opus-4-6', config);
     expect('error' in result).toBe(false);
     if (!('error' in result)) {
       expect(result.providerOptions).toEqual({ only: ['together', 'fireworks'], allowFallbacks: false });
@@ -39,7 +39,7 @@ describe('provider routing', () => {
       sonnet: '',
       haiku: '',
     };
-    const result = resolveModelStrict('claude-opus-2', config);
+    const result = resolveModelStrict('claude-opus-4-6', config);
     expect('error' in result).toBe(false);
     if (!('error' in result)) {
       expect(result.providerOptions).toEqual({ ignore: ['deepseek'] });
@@ -53,7 +53,7 @@ describe('provider routing', () => {
       sonnet: '',
       haiku: '',
     };
-    const result = resolveModelStrict('claude-opus-2', config);
+    const result = resolveModelStrict('claude-opus-4-6', config);
     expect('error' in result).toBe(false);
     if (!('error' in result)) {
       expect(result.resolved).toBe('anthropic/claude-3.5-sonnet');
@@ -61,14 +61,10 @@ describe('provider routing', () => {
     }
   });
 
-  it('passes through non-alias model without provider options', () => {
+  it('rejects a non-alias model when no role is configured for it', () => {
     const config = { fable: '', opus: '', sonnet: '', haiku: '' };
     const result = resolveModelStrict('anthropic/claude-3.5-haiku', config);
-    expect('error' in result).toBe(false);
-    if (!('error' in result)) {
-      expect(result.resolved).toBe('anthropic/claude-3.5-haiku');
-      expect(result.providerOptions).toBeUndefined();
-    }
+    expect(result).toHaveProperty('error');
   });
 
   it('handles empty model ID in object format', () => {
@@ -78,13 +74,13 @@ describe('provider routing', () => {
       sonnet: '',
       haiku: '',
     };
-    const result = resolveModelStrict('claude-opus-2', config);
+    const result = resolveModelStrict('claude-opus-4-6', config);
     expect('error' in result).toBe(true);
   });
 
   it('handles empty model ID string (backward compat)', () => {
     const config = { fable: '', opus: '', sonnet: '', haiku: '' };
-    const result = resolveModelStrict('claude-opus-2', config);
+    const result = resolveModelStrict('claude-opus-4-6', config);
     expect('error' in result).toBe(true);
   });
 
@@ -95,7 +91,7 @@ describe('provider routing', () => {
       sonnet: { id: 'anthropic/claude-3.5-sonnet', providerOptions: { sort: 'throughput' as const } },
       haiku: '',
     };
-    const result = resolveModelStrict('claude-sonnet-3.5', config);
+    const result = resolveModelStrict('claude-sonnet-4-6', config);
     expect('error' in result).toBe(false);
     if (!('error' in result)) {
       expect(result.providerOptions).toEqual({ sort: 'throughput' as const });
@@ -128,7 +124,7 @@ describe('provider routing', () => {
       sonnet: '',
       haiku: '',
     };
-    const result = resolveModelStrict('claude-opus-2', config);
+    const result = resolveModelStrict('claude-opus-4-6', config);
     expect('error' in result).toBe(false);
     if (!('error' in result)) {
       expect(result.providerOptions).toEqual({ sort: 'price' as const, only: ['fireworks'], ignore: ['deepseek'], allowFallbacks: false });
