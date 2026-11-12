@@ -4,7 +4,9 @@ import styles from '../styles/app.module.css';
 type ProviderOptions = { sort?: 'price' | 'throughput'; only?: string[]; ignore?: string[]; allowFallbacks?: boolean };
 type ModelValue = { id: string; providerOptions?: ProviderOptions } | string;
 
-type Config = { models: { fable: ModelValue; opus: ModelValue; sonnet: ModelValue; haiku: ModelValue } };
+type Models = { fable: ModelValue; opus: ModelValue; sonnet: ModelValue; haiku: ModelValue };
+type Profile = { name: string; models: Models };
+type Config = { models: Models; profiles?: Profile[] };
 
 const MODEL_TABS = [
   { key: 'fable', label: 'Fable' },
@@ -298,8 +300,27 @@ export default function ModelSettings({ config, onSave }: {
 }) {
   const [models, setModels] = useState(config.models);
   const [activeTab, setActiveTab] = useState<keyof Config['models']>('fable');
+  const [profileName, setProfileName] = useState('');
 
   useEffect(() => { setModels(config.models); }, [config]);
+
+  const profiles = config.profiles ?? [];
+
+  function saveProfile() {
+    const name = profileName.trim();
+    if (!name) return;
+    onSave({ profiles: [...profiles.filter(p => p.name !== name), { name, models }] });
+    setProfileName('');
+  }
+
+  function applyProfile(p: Profile) {
+    setModels(p.models);
+    onSave({ models: p.models });
+  }
+
+  function deleteProfile(p: Profile) {
+    onSave({ profiles: profiles.filter(x => x.name !== p.name) });
+  }
 
   function updateModel(key: keyof Config['models'], val: ModelValue) {
     setModels({ ...models, [key]: val });
@@ -347,6 +368,29 @@ export default function ModelSettings({ config, onSave }: {
       <div className={styles.row}>
         <button onClick={() => onSave({ models })} className={styles.primary}>Save Models</button>
       </div>
+
+      <section style={{ marginTop: 28 }}>
+        <h2>Model Profiles</h2>
+        <div className={styles.row} style={{ marginBottom: 10 }}>
+          <input
+            type="text"
+            value={profileName}
+            onChange={e => setProfileName(e.target.value)}
+            placeholder="Profile name (e.g. Cheap batch)"
+          />
+          <button onClick={saveProfile} disabled={!profileName.trim()}>Save current models as profile</button>
+        </div>
+        {profiles.length === 0 && (
+          <div className={styles.hint}>No profiles yet. Configure models above, then save them under a name.</div>
+        )}
+        {profiles.map(p => (
+          <div key={p.name} className={styles.row} style={{ marginBottom: 6 }}>
+            <span style={{ flex: 1, fontSize: 12.5 }}>{p.name}</span>
+            <button onClick={() => applyProfile(p)}>Apply</button>
+            <button onClick={() => deleteProfile(p)}>Delete</button>
+          </div>
+        ))}
+      </section>
     </section>
   );
 }

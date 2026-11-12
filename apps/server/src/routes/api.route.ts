@@ -31,19 +31,29 @@ export async function checkKey(
   }
 }
 
+function hasModel(value: unknown): boolean {
+  if (typeof value === 'string') return value.trim() !== '';
+  return !!value && typeof value === 'object' && !!(value as { id?: string }).id?.trim();
+}
+
 export async function register(app: FastifyInstance) {
   // GET /api/status — proxy health
   let statusCache: { at: number; upstreamOk: boolean } | null = null;
   app.get('/api/status', async () => {
-    if (statusCache && Date.now() - statusCache.at < 60_000) {
-      return { running: true, upstreamOk: statusCache.upstreamOk, lastCheck: new Date().toISOString() };
-    }
     const config = loadConfig();
+    // Onboarding göstergeleri her çağrıda taze config'ten okunur (cache'lenmez).
+    const readiness = {
+      keyConfigured: !!config.openrouter.apiKey,
+      modelsConfigured: Object.values(config.models).some(hasModel),
+    };
+    if (statusCache && Date.now() - statusCache.at < 60_000) {
+      return { running: true, upstreamOk: statusCache.upstreamOk, lastCheck: new Date().toISOString(), ...readiness };
+    }
     const upstreamOk = config.openrouter.apiKey
       ? (await checkKey(config.openrouter.baseUrl, config.openrouter.apiKey, 5000)).ok
       : false;
     statusCache = { at: Date.now(), upstreamOk };
-    return { running: true, upstreamOk, lastCheck: new Date().toISOString() };
+    return { running: true, upstreamOk, lastCheck: new Date().toISOString(), ...readiness };
   });
 
   // GET /api/config — config with masked API key
@@ -67,6 +77,38 @@ export async function register(app: FastifyInstance) {
     if (partial.openrouter) statusCache = null;
     // Config yazıldı; settings sync başarısız olsa da settings.json'a dokunmadan geç.
     if (partial.models) {
+      try { syncModelOverrides(loadConfig().models); }
+      catch (e) { console.warn('[api] modelOverrides güncellenemedi:', (e as Error).message); }
+    }
+    return { ok: true };
+  });
+
+  // GET /api/config/export — config backup; the API key is deliberately excluded
+  app.get('/api/config/export', async (_req, reply) => {
+    const { openrouter, ...rest } = loadConfig();
+    reply.header('Content-Disposition', 'attachment; filename="claude-code-proxy-config.json"');
+    reply.type('application/json');
+    return { ...rest, openrouter: { baseUrl: openrouter.baseUrl } };
+  });
+
+  // POST /api/config/import — apply known fields; the local API key is never replaced
+  app.post('/api/config/import', async (req, reply) => {
+    const incoming = req.body;
+    if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+      return reply.code(400).send({ ok: false, error: 'config must be a JSON object' });
+    }
+    const patch = structuredClone(incoming) as Record<string, unknown>;
+    const patchOr = patch.openrouter;
+    if (patchOr && typeof patchOr === 'object' && !Array.isArray(patchOr)) {
+      delete (patchOr as Record<string, unknown>).apiKey;
+    }
+    try {
+      saveConfig(patch as Partial<AppConfig>);
+    } catch (e) {
+      return reply.code(400).send({ ok: false, error: (e as Error).message });
+    }
+    statusCache = null;
+    if (patch.models) {
       try { syncModelOverrides(loadConfig().models); }
       catch (e) { console.warn('[api] modelOverrides güncellenemedi:', (e as Error).message); }
     }

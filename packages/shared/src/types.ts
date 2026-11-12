@@ -85,6 +85,12 @@ export interface ModelConfig {
   haiku: ModelConfigValue;
 }
 
+/** Adlandırılmış model seti; "Apply" edilince `models` alanına kopyalanır. */
+export interface ModelProfile {
+  name: string;
+  models: ModelConfig;
+}
+
 export interface AppConfig {
   server: ServerConfig;
   openrouter: OpenRouterConfig;
@@ -94,6 +100,8 @@ export interface AppConfig {
   enablePromptCaching?: boolean;
   /** upstream'e gönderilmeyecek alanlar; boş = tam pass-through */
   stripFields?: string[];
+  /** Kaydedilmiş model profilleri; dizi olduğu için yama tümüyle değiştirir. */
+  profiles?: ModelProfile[];
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -143,6 +151,11 @@ export const SecurityConfigSchema = z.object({
   allowRemote: z.boolean().default(false),
 }).passthrough();
 
+export const ModelProfileSchema = z.object({
+  name: z.string().min(1),
+  models: ModelConfigSchema,
+}).passthrough();
+
 export const AppConfigSchema = z.object({
   server: ServerConfigSchema,
   openrouter: OpenRouterConfigSchema,
@@ -150,6 +163,7 @@ export const AppConfigSchema = z.object({
   security: SecurityConfigSchema.optional(),
   enablePromptCaching: z.boolean().default(false),
   stripFields: z.array(z.string()).default([]),
+  profiles: z.array(ModelProfileSchema).optional(),
 }).passthrough();
 
 export type ZodAppConfig = z.infer<typeof AppConfigSchema>;

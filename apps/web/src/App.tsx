@@ -5,16 +5,18 @@ import ModelSettings from './components/ModelSettings';
 import ProxySettings from './components/ProxySettings';
 import RequestHistory from './components/RequestHistory';
 import LaunchCommand from './components/LaunchCommand';
+import BackupSettings from './components/BackupSettings';
 import styles from './styles/app.module.css';
 
 type Config = {
   server: { host: string; port: number; timeoutMs?: number; bodyLimit?: number };
   openrouter: { baseUrl: string; apiKey: string };
   models: { fable: string | { id: string }; opus: string | { id: string }; sonnet: string | { id: string }; haiku: string | { id: string } };
+  profiles?: Array<{ name: string; models: Config['models'] }>;
   enablePromptCaching?: boolean;
 };
 
-type Status = { running: boolean; upstreamOk: boolean; lastCheck?: string };
+type Status = { running: boolean; upstreamOk: boolean; lastCheck?: string; keyConfigured?: boolean; modelsConfigured?: boolean };
 
 const TABS = [
   { key: 'settings', label: 'Settings' },
@@ -22,6 +24,7 @@ const TABS = [
   { key: 'proxy', label: 'Proxy' },
   { key: 'launch', label: 'Launch' },
   { key: 'history', label: 'History' },
+  { key: 'backup', label: 'Backup' },
 ] as const;
 
 export default function App() {
@@ -70,6 +73,17 @@ export default function App() {
 
       <StatusBar status={status} />
 
+      {!status.keyConfigured && (
+        <div className={styles.hint} style={{ color: 'var(--accent)' }}>
+          Setup: paste your OpenRouter API key in the Settings tab.
+        </div>
+      )}
+      {status.keyConfigured && !status.modelsConfigured && (
+        <div className={styles.hint} style={{ color: 'var(--accent)' }}>
+          Setup: pick at least one model in the Models tab.
+        </div>
+      )}
+
       {config ? (<>
         <nav className={styles.tabs}>
           {TABS.map(t => (
@@ -92,6 +106,9 @@ export default function App() {
           )}
           {tab === 'history' && (
             <RequestHistory />
+          )}
+          {tab === 'backup' && (
+            <BackupSettings onImported={() => { loadConfig(); loadStatus(); }} />
           )}
         </div>
       </>) : (
